@@ -1,11 +1,16 @@
 package main
 
 import (
-	"backend/internal/database"
+	"backend/database"
+	"backend/internal/config"
+	"backend/internal/repository"
 )
 
 func main() {
 
-	database.ConfigDb()
+	db := database.ConfigDb()
+	UserRepo:=repository.NewUserRepository(db)
+	
+	config.Config()
 
 }

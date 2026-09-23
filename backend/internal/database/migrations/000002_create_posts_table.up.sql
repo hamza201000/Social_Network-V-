@@ -1,4 +1,0 @@
-
-
-
-DROP TABLE IF EXIST posts;
