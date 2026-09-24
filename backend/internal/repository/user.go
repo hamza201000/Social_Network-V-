@@ -26,18 +26,101 @@ func (repo *UserRepository) RegisterUser(user models.RegisterRequest) error {
 	return nil
 }
 
-func (repo *UserRepository) LoginUser(user models.LoginRequest) (*models.User,error) {
-	
+func (repo *UserRepository) LoginUser(user models.LoginRequest) (*models.User, error) {
+
 	var userData models.User
 	qeury := `SELECT id,password_hash
 	FROM users
 	WHERE (email=$1 or username=$1)
 	`
-	err := repo.db.QueryRow(qeury, user.Email).Scan(&userData.Id,&userData.Password)
+	err := repo.db.QueryRow(qeury, user.Email).Scan(&userData.Id, &userData.Password)
 	if err == sql.ErrNoRows {
 		fmt.Println("err database", err)
-		return nil,err
+		return nil, err
 	}
 
-	return &userData,nil
+	return &userData, nil
+}
+func (repo *UserRepository) GetUserBySession(sessionID string) (models.User, error) {
+
+	var user models.User
+
+	query := `
+		SELECT
+			u.id,
+			u.first_name,
+			u.last_name,
+			u.username,
+			u.email
+		FROM users u
+		JOIN sessions s ON s.user_id = u.id
+		WHERE s.session_id = $1
+	`
+
+	err := repo.db.QueryRow(
+		query,
+		sessionID,
+	).Scan(
+		&user.Id,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.Email,
+	)
+
+	if err != nil {
+		fmt.Println("error getting user:", err)
+		return user, err
+	}
+
+	return user, nil
+}
+func (repo *UserRepository) DeleteSession(sessionID string) error {
+
+	query := `
+		DELETE FROM sessions
+		WHERE session_id = $1
+	`
+
+	_, err := repo.db.Exec(query, sessionID)
+	if err != nil {
+		fmt.Println("error deleting session:", err)
+		return err
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) GetUserByUsername(username string) (models.User, error) {
+
+	var user models.User
+
+	query := `
+		SELECT
+			id,
+			first_name,
+			last_name,
+			username,
+			email
+		FROM users
+		WHERE username = $1
+	`
+
+	err := repo.db.QueryRow(
+		query,
+		username,
+	).Scan(
+		&user.Id,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.Email,
+	)
+
+	if err != nil {
+		fmt.Println("error getting user:", err)
+		return user, err
+	}
+
+	return user, nil
 }

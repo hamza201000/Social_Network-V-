@@ -4,6 +4,7 @@ import (
 	"backend/internal/models"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 	"uuid"
 )
@@ -11,14 +12,15 @@ import (
 func (r *UserRepository) CreateSession(userID int64) (uuid.UUID, error) {
 	sessionID := uuid.New()
 
-	expiresAt := time.Now().Add(24 * time.Hour)
+	expiresAt := time.Now().Add(24 * time.Minute)
 
 	_, err := r.db.Exec(`
-		INSERT INTO sessions (id, user_id, expires_at)
+		INSERT INTO sessions (token, user_id, expires_at)
 		VALUES ($1, $2, $3)
 	`, sessionID, userID, expiresAt)
 
 	if err != nil {
+		fmt.Println("error in create session",err)
 		return uuid.Nil(), err
 	}
 	return sessionID, nil
@@ -50,13 +52,4 @@ func (repo *UserRepository) GetSession(token string) (*models.Session, error) {
 	}
 
 	return &session, nil
-}
-func (repo *UserRepository) DeleteSession(token string) error {
-	query := `
-		DELETE FROM sessions
-		WHERE token = ?
-	`
-
-	_, err := repo.db.Exec(query, token)
-	return err
 }

@@ -17,7 +17,7 @@ func ConfigDb()*sql.DB {
 	if err != nil {
 		log.Fatalf("Error opening database file: %v", err)
 	}
-	defer db.Close()
+	
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Error connecting to SQLite3 database: %v", err)
 	}

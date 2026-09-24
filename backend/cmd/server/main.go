@@ -13,5 +13,5 @@ func main() {
 	UserRepo := repository.NewUserRepository(db)
 	userHandler := handler.NewUserHandler(UserRepo)
 	config.Config(userHandler)
-
+	defer db.Close()
 }
