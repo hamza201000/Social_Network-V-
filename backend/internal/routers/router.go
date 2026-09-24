@@ -1,11 +1,14 @@
 package router
 
-import "net/http"
+import (
+	handler "backend/internal/handlers"
+	"net/http"
+)
 
-func Routers()*http.ServeMux {
+func Routers(userHandler *handler.UserHandler) *http.ServeMux {
 
-	mux:=http.NewServeMux()
-	PostRouter(mux)
-	UserRouter(mux)
-	return  mux
+	mux := http.NewServeMux()
+	PostRouter(mux, userHandler)
+	UserRouter(mux, userHandler)
+	return mux
 }

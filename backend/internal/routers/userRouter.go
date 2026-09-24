@@ -5,12 +5,12 @@ import (
 	"net/http"
 )
 
-func UserRouter(mux *http.ServeMux) {
+func UserRouter(mux *http.ServeMux, userHandler *handler.UserHandler) {
 
 	//login and register
-	mux.HandleFunc("post api/login", handler.Login)
-	mux.HandleFunc("post api/Register", handler.Register)
+	mux.HandleFunc("post api/login", userHandler.Login)
+	mux.HandleFunc("post api/Register", userHandler.Register)
 	// profile
-	mux.HandleFunc("GET api/user/{username}", handler.GetUser)
+	mux.HandleFunc("GET api/user/{username}", userHandler.GetUser)
 
 }

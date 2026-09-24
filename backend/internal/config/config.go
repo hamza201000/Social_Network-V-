@@ -1,16 +1,15 @@
 package config
 
 import (
+	handler "backend/internal/handlers"
 	router "backend/internal/routers"
 	"net/http"
 )
 
+func Config(userHandler *handler.UserHandler) {
 
-func Config(){
+	mux := router.Routers(userHandler)
 
-	mux:=router.Routers()
-
-	
-	http.ListenAndServe(":8080",mux)
+	http.ListenAndServe(":8080", mux)
 
 }
