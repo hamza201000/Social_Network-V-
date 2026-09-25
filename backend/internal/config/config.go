@@ -7,9 +7,6 @@ import (
 )
 
 func Config(userHandler *handler.UserHandler) {
-
 	mux := router.Routers(userHandler)
-
 	http.ListenAndServe(":8080", mux)
-
 }

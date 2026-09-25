@@ -9,6 +9,7 @@ func Routers(userHandler *handler.UserHandler) *http.ServeMux {
 
 	mux := http.NewServeMux()
 	PostRouter(mux, userHandler)
+	CommentRouter(mux, userHandler)
 	UserRouter(mux, userHandler)
 	return mux
 }

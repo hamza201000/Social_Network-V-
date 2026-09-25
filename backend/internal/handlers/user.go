@@ -3,15 +3,19 @@ package handler
 import (
 	"backend/internal/models"
 	"backend/internal/repository"
+	"backend/internal/services"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"net/http"
 )
 
 type UserHandler struct {
-	userRepo *repository.UserRepository
+	userRepo    *repository.UserRepository
+	postRepo    *repository.PostRepository
+	commentRepo *repository.CommentRepository
 }
 
 func NewUserHandler(userRepo *repository.UserRepository) *UserHandler {
@@ -56,35 +60,85 @@ func (userHandler UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var res models.Res
 	var userData models.RegisterRequest
+
 	fmt.Println("register request received")
-	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
+
+	r.Body = http.MaxBytesReader(
+		w,
+		r.Body,
+		10*1024*1024,
+	)
 
 	err := r.ParseMultipartForm(10 * 1024 * 1024)
 	if err != nil {
-		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+		SendError(
+			w,
+			http.StatusRequestEntityTooLarge,
+			"request is too large",
+		)
 		return
 	}
-	userData.FirstName = r.FormValue("first_name")
-	userData.LastName = r.FormValue("last_name")
-	userData.Password = r.FormValue("password")
-	userData.Username = r.FormValue("username")
-	userData.Email = r.FormValue("email")
 
-	file, header, _ := r.FormFile("image")
-	if file != nil {
+	userData.FirstName = strings.TrimSpace(r.FormValue("first_name"))
+	userData.LastName = strings.TrimSpace(r.FormValue("last_name"))
+	userData.Username = strings.TrimSpace(r.FormValue("username"))
+	userData.Email = strings.TrimSpace(r.FormValue("email"))
+	userData.Password = r.FormValue("password")
+
+	err = services.RegisterRequest(userData)
+	if err != nil {
+		SendError(
+			w,
+			http.StatusBadRequest,
+			err.Error(),
+		)
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+
+	if err == nil && file != nil {
+		defer file.Close()
+
+		// Maximum image size: 5 MB
 		if header.Size > 5*1024*1024 {
-			http.Error(w, "image must be less than 5 MB", http.StatusBadRequest)
+			SendError(
+				w,
+				http.StatusBadRequest,
+				"image must be less than 5 MB",
+			)
 			return
 		}
-		defer file.Close()
+		contentType := header.Header.Get("Content-Type")
+		allowedTypes := map[string]bool{
+			"image/jpeg": true,
+			"image/png":  true,
+			"image/webp": true,
+		}
+		if !allowedTypes[contentType] {
+			SendError(
+				w,
+				http.StatusBadRequest,
+				"only JPEG, PNG and WebP images are allowed",
+			)
+			return
+		}
 	}
 	err = repo.userRepo.RegisterUser(userData)
 	if err != nil {
-		http.Error(w, "internal server", http.StatusInternalServerError)
+		fmt.Println("register user error:", err)
+		SendError(
+			w,
+			http.StatusInternalServerError,
+			"could not register user",
+		)
 		return
 	}
+
 	res.Message = "user registered successfully"
-	SendJSON(w, http.StatusOK, res)
+
+	w.Header().Set("Content-Type", "application/json")
+	SendJSON(w, http.StatusCreated, res)
 }
 
 func (userHandler UserHandler) Logout(w http.ResponseWriter, r *http.Request) {

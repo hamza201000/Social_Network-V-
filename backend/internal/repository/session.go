@@ -20,7 +20,7 @@ func (r *UserRepository) CreateSession(userID int64) (uuid.UUID, error) {
 	`, sessionID, userID, expiresAt)
 
 	if err != nil {
-		fmt.Println("error in create session",err)
+		fmt.Println("error in create session", err)
 		return uuid.Nil(), err
 	}
 	return sessionID, nil
@@ -28,7 +28,7 @@ func (r *UserRepository) CreateSession(userID int64) (uuid.UUID, error) {
 
 func (repo *UserRepository) GetSession(token string) (*models.Session, error) {
 	query := `
-		SELECT id, user_id, token, expires_at
+		SELECT id, user_id, expires_at
 		FROM sessions
 		WHERE token = ?
 		AND expires_at > CURRENT_TIMESTAMP
@@ -39,7 +39,6 @@ func (repo *UserRepository) GetSession(token string) (*models.Session, error) {
 	err := repo.db.QueryRow(query, token).Scan(
 		&session.ID,
 		&session.UserID,
-		&session.Token,
 		&session.ExpiresAt,
 	)
 
