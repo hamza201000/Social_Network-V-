@@ -2,19 +2,10 @@ package repository
 
 import (
 	"backend/internal/models"
-	"database/sql"
 	"fmt"
 )
 
-type PostRepository struct {
-	db *sql.DB
-}
-
-func NewPostRepository(db *sql.DB) *PostRepository {
-	return &PostRepository{db: db}
-}
-
-func (repo *PostRepository) CreatePost(userID int64, post models.PostRequest) (int64, error) {
+func (repo *UserRepository) CreatePost(userID int64, post models.PostRequest) (int64, error) {
 	transaction, err := repo.db.Begin()
 	if err != nil {
 		return 0, err
@@ -52,7 +43,7 @@ func (repo *PostRepository) CreatePost(userID int64, post models.PostRequest) (i
 	return postID, nil
 }
 
-func (repo *PostRepository) CanViewPost(postID, viewerID int64) (bool, error) {
+func (repo *UserRepository) CanViewPost(postID, viewerID int64) (bool, error) {
 	var allowed int
 	err := repo.db.QueryRow(`
 		SELECT EXISTS (
@@ -70,7 +61,7 @@ func (repo *PostRepository) CanViewPost(postID, viewerID int64) (bool, error) {
 	return allowed == 1, err
 }
 
-func (repo *PostRepository) GetPosts(viewerID int64) ([]models.PostData, error) {
+func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) {
 	rows, err := repo.db.Query(postQuery+` WHERE p.privacy = 'public' OR p.user_id = ? OR
 		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = p.user_id)) OR
 		(p.privacy = 'private' AND EXISTS (SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?))
@@ -91,7 +82,7 @@ func (repo *PostRepository) GetPosts(viewerID int64) ([]models.PostData, error) 
 	return posts, rows.Err()
 }
 
-func (repo *PostRepository) GetPostByID(postID, viewerID int64) (models.PostData, error) {
+func (repo *UserRepository) GetPostByID(postID, viewerID int64) (models.PostData, error) {
 	var post models.PostData
 	err := repo.db.QueryRow(postQuery+` WHERE p.id = ? AND (p.privacy = 'public' OR p.user_id = ? OR
 		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = p.user_id)) OR
@@ -103,7 +94,7 @@ func (repo *PostRepository) GetPostByID(postID, viewerID int64) (models.PostData
 const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.image_path, p.privacy, p.created_at
 	FROM posts p JOIN users u ON u.id = p.user_id`
 
-func (repo *PostRepository) ValidatePrivateFollowers(userID int64, followerIDs []int64) error {
+func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs []int64) error {
 	for _, followerID := range followerIDs {
 		var exists int
 		err := repo.db.QueryRow("SELECT EXISTS (SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ?)", followerID, userID).Scan(&exists)

@@ -2,6 +2,7 @@ package router
 
 import (
 	handler "backend/internal/handlers"
+	"backend/internal/middleware"
 	"net/http"
 )
 
@@ -11,5 +12,6 @@ func Routers(userHandler *handler.UserHandler) *http.ServeMux {
 	PostRouter(mux, userHandler)
 	CommentRouter(mux, userHandler)
 	UserRouter(mux, userHandler)
+	middleware.Logging(mux)
 	return mux
 }

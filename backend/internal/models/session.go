@@ -7,7 +7,7 @@ import (
 
 type Session struct {
 	ID        int64
-	UserID    int
+	User_id    int64
 	Token     uuid.UUID
 	ExpiresAt time.Time
 }

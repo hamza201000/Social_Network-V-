@@ -2,7 +2,6 @@ package handler
 
 import (
 	"backend/internal/models"
-	"backend/internal/repository"
 	"backend/internal/services"
 	"database/sql"
 	"encoding/json"
@@ -17,14 +16,10 @@ import (
 	"time"
 )
 
-func (userHandler *UserHandler) SetContentRepositories(postRepo *repository.PostRepository, commentRepo *repository.CommentRepository) {
-	userHandler.postRepo = postRepo
-	userHandler.commentRepo = commentRepo
-}
-
 func (userHandler *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
-	viewerID := userHandler.optionalUserID(r)
-	posts, err := userHandler.postRepo.GetPosts(viewerID)
+
+	user_id := r.Context().Value("user_id").(int64)
+	posts, err := userHandler.UserRepo.GetPosts(user_id)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "could not get posts")
 		return
@@ -38,7 +33,8 @@ func (userHandler *UserHandler) GetPostById(w http.ResponseWriter, r *http.Reque
 		SendError(w, http.StatusBadRequest, "invalid post id")
 		return
 	}
-	post, err := userHandler.postRepo.GetPostByID(postID, userHandler.optionalUserID(r))
+	user_id := r.Context().Value("user_id").(int64)
+	post, err := userHandler.UserRepo.GetPostByID(postID, user_id)
 	if errors.Is(err, sql.ErrNoRows) {
 		SendError(w, http.StatusNotFound, "post not found")
 		return
@@ -56,7 +52,8 @@ func (userHandler *UserHandler) GetComments(w http.ResponseWriter, r *http.Reque
 		SendError(w, http.StatusBadRequest, "invalid post id")
 		return
 	}
-	allowed, err := userHandler.postRepo.CanViewPost(postID, userHandler.optionalUserID(r))
+	user_id := r.Context().Value("user_id").(int64)
+	allowed, err := userHandler.UserRepo.CanViewPost(postID, user_id)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "could not check post access")
 		return
@@ -65,7 +62,7 @@ func (userHandler *UserHandler) GetComments(w http.ResponseWriter, r *http.Reque
 		SendError(w, http.StatusNotFound, "post not found")
 		return
 	}
-	comments, err := userHandler.commentRepo.GetComments(postID)
+	comments, err := userHandler.UserRepo.GetComments(postID)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "could not get comments")
 		return
@@ -74,11 +71,8 @@ func (userHandler *UserHandler) GetComments(w http.ResponseWriter, r *http.Reque
 }
 
 func (userHandler *UserHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
-	userID, err := userHandler.requiredUserID(r)
-	if err != nil {
-		SendError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
+	// userID, err := userHandler.requiredUserID(r)
+	user_id := r.Context().Value("user_id").(int64)
 	post, err := parsePostRequest(w, r)
 	if err != nil {
 		SendError(w, http.StatusBadRequest, err.Error())
@@ -93,12 +87,12 @@ func (userHandler *UserHandler) CreatePost(w http.ResponseWriter, r *http.Reques
 			SendError(w, http.StatusBadRequest, "private posts require selected followers")
 			return
 		}
-		if err := userHandler.postRepo.ValidatePrivateFollowers(userID, post.FollowerIDs); err != nil {
+		if err := userHandler.UserRepo.ValidatePrivateFollowers(user_id, post.FollowerIDs); err != nil {
 			SendError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 	}
-	postID, err := userHandler.postRepo.CreatePost(userID, post)
+	postID, err := userHandler.UserRepo.CreatePost(user_id, post)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "could not create post")
 		return
@@ -107,17 +101,13 @@ func (userHandler *UserHandler) CreatePost(w http.ResponseWriter, r *http.Reques
 }
 
 func (userHandler *UserHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
-	userID, err := userHandler.requiredUserID(r)
-	if err != nil {
-		SendError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
+	user_id := r.Context().Value("user_id").(int64)
 	postID, err := pathID(r)
 	if err != nil {
 		SendError(w, http.StatusBadRequest, "invalid post id")
 		return
 	}
-	allowed, err := userHandler.postRepo.CanViewPost(postID, userID)
+	allowed, err := userHandler.UserRepo.CanViewPost(postID, user_id)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "could not check post access")
 		return
@@ -135,7 +125,7 @@ func (userHandler *UserHandler) CreateComment(w http.ResponseWriter, r *http.Req
 		SendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	commentID, err := userHandler.commentRepo.CreateComment(userID, postID, comment)
+	commentID, err := userHandler.UserRepo.CreateComment(user_id, postID, comment)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "could not create comment")
 		return
@@ -143,25 +133,25 @@ func (userHandler *UserHandler) CreateComment(w http.ResponseWriter, r *http.Req
 	SendJSON(w, http.StatusCreated, models.Res{Message: "comment created successfully", Data: map[string]int64{"id": commentID}})
 }
 
-func (userHandler *UserHandler) requiredUserID(r *http.Request) (int64, error) {
-	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		return 0, err
-	}
-	session, err := userHandler.userRepo.GetSession(cookie.Value)
-	if err != nil {
-		return 0, err
-	}
-	return int64(session.UserID), nil
-}
+// func (userHandler *UserHandler) requiredUserID(r *http.Request) (int64, error) {
+// 	cookie, err := r.Cookie("session_id")
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	session, err := userHandler.UserRepo.GetSession(cookie.Value)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return int64(session.User_id), nil
+// }
 
-func (userHandler *UserHandler) optionalUserID(r *http.Request) int64 {
-	userID, err := userHandler.requiredUserID(r)
-	if err != nil {
-		return 0
-	}
-	return userID
-}
+// func (userHandler *UserHandler) optionalUserID(r *http.Request) int64 {
+// 	userID, err := userHandler.requiredUserID(r)
+// 	if err != nil {
+// 		return 0
+// 	}
+// 	return userID
+// }
 
 func pathID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("id"), 10, 64)

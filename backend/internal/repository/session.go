@@ -2,8 +2,7 @@ package repository
 
 import (
 	"backend/internal/models"
-	"database/sql"
-	"errors"
+
 	"fmt"
 	"time"
 	"uuid"
@@ -38,15 +37,11 @@ func (repo *UserRepository) GetSession(token string) (*models.Session, error) {
 
 	err := repo.db.QueryRow(query, token).Scan(
 		&session.ID,
-		&session.UserID,
+		&session.User_id,
 		&session.ExpiresAt,
 	)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, sql.ErrNoRows
-		}
-
 		return nil, err
 	}
 

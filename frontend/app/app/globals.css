@@ -1,0 +1,37 @@
+
+.sidebar-top {
+  background: #1e1f26;
+  padding: 0.5rem 1rem;
+}
+
+.sidebar-top .nav-menu {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.sidebar-top .nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  color: #c9cbd3;
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-top .nav-item:hover {
+  background: #2a2b34;
+  color: #fff;
+}
+
+.sidebar-top .nav-item.active {
+  background: #3b5bfd;
+  color: #fff;
+  font-weight: 500;
+}

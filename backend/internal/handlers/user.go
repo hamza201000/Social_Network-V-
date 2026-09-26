@@ -13,14 +13,12 @@ import (
 )
 
 type UserHandler struct {
-	userRepo    *repository.UserRepository
-	postRepo    *repository.PostRepository
-	commentRepo *repository.CommentRepository
+	UserRepo *repository.UserRepository
 }
 
 func NewUserHandler(userRepo *repository.UserRepository) *UserHandler {
 	return &UserHandler{
-		userRepo: userRepo,
+		UserRepo: userRepo,
 	}
 }
 
@@ -33,13 +31,14 @@ func (userHandler UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-	user, err := userHandler.userRepo.LoginUser(dataLogin)
+
+	user, err := userHandler.UserRepo.LoginUser(dataLogin)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
 	fmt.Println(user)
-	token, err := userHandler.userRepo.CreateSession(user.Id)
+	token, err := userHandler.UserRepo.CreateSession(user.Id)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
@@ -124,7 +123,7 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	err = repo.userRepo.RegisterUser(userData)
+	err = repo.UserRepo.RegisterUser(userData)
 	if err != nil {
 		fmt.Println("register user error:", err)
 		SendError(
@@ -149,7 +148,7 @@ func (userHandler UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = userHandler.userRepo.DeleteSession(cookie.Value)
+	err = userHandler.UserRepo.DeleteSession(cookie.Value)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
@@ -175,7 +174,7 @@ func (userHandler UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		SendError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	user, err := userHandler.userRepo.GetUserBySession(cookie.Value)
+	user, err := userHandler.UserRepo.GetUserBySession(cookie.Value)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
@@ -193,7 +192,7 @@ func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	user, err := userHandler.userRepo.GetUserByUsername(username)
+	user, err := userHandler.UserRepo.GetUserByUsername(username)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			SendError(w, http.StatusNotFound, "user not found")
