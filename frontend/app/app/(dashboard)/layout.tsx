@@ -1,7 +1,7 @@
-import Bar from "@/components/bar";
+import Bar from "@/components/layout/bar";
 
 
-export default function RootLayoutDashboardLayout({
+export default function DashboardLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;

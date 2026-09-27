@@ -31,7 +31,7 @@ func (userHandler UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-
+	fmt.Println(dataLogin)
 	user, err := userHandler.UserRepo.LoginUser(dataLogin)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
@@ -62,21 +62,21 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("register request received")
 
-	r.Body = http.MaxBytesReader(
-		w,
-		r.Body,
-		10*1024*1024,
-	)
+	// r.Body = http.MaxBytesReader(
+	// 	w,
+	// 	r.Body,
+	// 	10*1024*1024,
+	// )
 
-	err := r.ParseMultipartForm(10 * 1024 * 1024)
-	if err != nil {
-		SendError(
-			w,
-			http.StatusRequestEntityTooLarge,
-			"request is too large",
-		)
-		return
-	}
+	// err := r.ParseMultipartForm(10 * 1024 * 1024)
+	// if err != nil {
+	// 	SendError(
+	// 		w,
+	// 		http.StatusRequestEntityTooLarge,
+	// 		"request is too large",
+	// 	)
+	// 	return
+	// }
 
 	userData.FirstName = strings.TrimSpace(r.FormValue("first_name"))
 	userData.LastName = strings.TrimSpace(r.FormValue("last_name"))
@@ -84,7 +84,9 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	userData.Email = strings.TrimSpace(r.FormValue("email"))
 	userData.Password = r.FormValue("password")
 
-	err = services.RegisterRequest(userData)
+	err := services.RegisterRequest(userData)
+	fmt.Println(userData)
+	fmt.Println(err)
 	if err != nil {
 		SendError(
 			w,
@@ -98,8 +100,6 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil && file != nil {
 		defer file.Close()
-
-		// Maximum image size: 5 MB
 		if header.Size > 5*1024*1024 {
 			SendError(
 				w,

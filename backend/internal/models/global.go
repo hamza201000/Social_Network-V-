@@ -1,8 +1,7 @@
-
 package models
-type Res struct{
 
+type Res struct {
 	Message string `json:"message"`
-	Data  any   `json:"data"`
-
+	Err     string `json:"err"`
+	Data    any    `json:"data"`
 }

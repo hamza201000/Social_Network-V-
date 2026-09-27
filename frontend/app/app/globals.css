@@ -1,3 +1,69 @@
+:root {
+  --page: #f6f7f9;
+  --surface: #ffffff;
+  --surface-soft: #eef6f2;
+  --line: #468a68;
+  --text: #17201c;
+  --muted: #69776f;
+  --accent: #256f5a;
+  --accent-strong: #174f40;
+  --accent-soft: #dceee8;
+  --warning: #b45309;
+  --shadow: 0 18px 45px rgba(20, 32, 28, 0.08);
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  
+  background: var(--page);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  color: var(--text);
+  padding: 0 12px;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: 3px solid rgba(37, 111, 90, 0.16);
+}
 
 .sidebar-top {
   background: #1e1f26;
@@ -34,4 +100,77 @@
   background: #3b5bfd;
   color: #fff;
   font-weight: 500;
+}
+
+.avatar-upload-wrapper {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.avatar-upload-label {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.avatar-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-file-input {
+  display: none;
+}
+
+.avatar-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  font: inherit;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.avatar-upload-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.avatar-remove-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(194, 65, 12, 0.3);
+  border-radius: var(--radius);
+  background: transparent;
+  color: #c2410c;
+  font-weight: 700;
+  font: inherit;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.avatar-remove-btn:hover {
+  background: rgba(194, 65, 12, 0.08);
+}
+
+.avatar-preview-wrapper {
+  margin-top: 4px;
+}
+
+.avatar-preview-img {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  border: 2px solid var(--line);
 }
