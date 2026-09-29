@@ -118,7 +118,7 @@ export default function RegisterForm() {
                             placeholder="mina"
                         />
                     </label>
-                    {/* Avatar upload */}
+                   
                     <div className="avatar-upload-wrapper">
                         <span className="avatar-upload-label">Profile image</span>
                         <div className="avatar-upload-row">

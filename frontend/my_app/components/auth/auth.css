@@ -46,23 +46,6 @@
   text-transform: uppercase;
 }
 
-.primary-button {
-  min-height: 42px;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--accent);
-  color: #ffffff;
-  font-weight: 800;
-}
-
-.primary-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
-}
-
-.primary-button:hover {
-  background: var(--accent-strong);
-}
 .error {
   border: 1px solid rgba(194, 65, 12, 0.26);
   border-radius: var(--radius);

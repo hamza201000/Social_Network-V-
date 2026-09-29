@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -13,6 +14,7 @@ func Middleware(repo *repository.UserRepository, next http.HandlerFunc) http.Han
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Cookie, err := r.Cookie("session_id")
 		cookie, err := r.Cookie("session_id")
+		fmt.Println("cookie:::",cookie)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
 				handler.SendError(w, http.StatusUnauthorized, "Unauthorized")
@@ -25,8 +27,10 @@ func Middleware(repo *repository.UserRepository, next http.HandlerFunc) http.Han
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				handler.SendError(w, http.StatusUnauthorized, "Unauthorized")
+				return 
 			}
 			handler.SendError(w, http.StatusInternalServerError, "Bad Request")
+			return 
 		}
 		ctx:=context.WithValue(r.Context(), "user_id", session.User_id)
 		next.ServeHTTP(w, r.WithContext(ctx))

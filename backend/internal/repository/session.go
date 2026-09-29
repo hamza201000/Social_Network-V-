@@ -42,6 +42,7 @@ func (repo *UserRepository) GetSession(token string) (*models.Session, error) {
 	)
 
 	if err != nil {
+		fmt.Println("error",err)
 		return nil, err
 	}
 

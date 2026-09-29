@@ -1,16 +1,122 @@
-.post {
-    flex: 1;
-  width: 100%;
-  max-width: auto;
-  margin: 16px auto;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 1px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+.create-post {
   display: flex;
-  min-height: 100vh;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  align-items: flex-end;
+  gap: 12px;
+  width: 100%;
+  padding: 18px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, #ffffff, rgba(220, 238, 232, 0.38));
+  box-shadow: 0 10px 28px rgba(20, 32, 28, 0.08);
+}
+
+.create-post textarea {
+  display: block;
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1px solid rgba(70, 138, 104, 0.55);
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.55;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.create-post textarea::placeholder {
+  color: var(--muted);
+}
+
+.create-post textarea:focus {
+  border-color: var(--accent);
+  outline: 3px solid rgba(37, 111, 90, 0.14);
+}
+
+.create-post .primary-button {
+  min-width: 127px;
+ 
+}
+
+
+
+.post {
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  background: linear-gradient(145deg, #ffffff, rgba(220, 238, 232, 0.38));
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(20, 32, 28, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.post > h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.post header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(70, 138, 104, 0.28);
+}
+
+.post header h2 {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 1rem;
+}
+
+.post time {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.post > div {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.post p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.post img {
+  display: block;
+  width: 100%;
+  max-height: 440px;
+  border: 1px solid rgba(70, 138, 104, 0.35);
+  border-radius: calc(var(--radius) - 2px);
+  object-fit: cover;
+}
+
+@media (max-width: 560px) {
+  .create-post {
+    padding: 14px;
+  }
+
+  .post {
+    padding: 16px;
+  }
+
+  .post header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
 }

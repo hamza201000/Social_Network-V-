@@ -5,7 +5,6 @@ export default function CardPost({ postData }: { postData: PostData }) {
 
     return (
         <article className="post">
-            <h3>{postData.content}</h3>
             <header>
                 <h2>{postData.username}</h2>
                 <time dateTime={postData.created_at}>

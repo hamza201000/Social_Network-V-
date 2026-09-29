@@ -17,7 +17,7 @@ import (
 )
 
 func (userHandler *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
-
+	fmt.Println("in hhhh")
 	user_id := r.Context().Value("user_id").(int64)
 	posts, err := userHandler.UserRepo.GetPosts(user_id)
 	if err != nil {
