@@ -13,13 +13,12 @@ func (repo *UserRepository) CreatePost(userID int64, post models.PostRequest) (i
 	defer transaction.Rollback()
 
 	result, err := transaction.Exec(
-		"INSERT INTO posts (user_id, content, image_path, privacy) VALUES (?, ?, ?, ?)",
-		userID, post.Content, post.Image, post.Privacy,
+		"INSERT INTO posts (user_id, content, privacy) VALUES (?, ?, ?)",
+		userID, post.Content, post.Privacy,
 	)
 	if err != nil {
 		return 0, err
 	}
-
 	postID, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
@@ -74,7 +73,7 @@ func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) 
 	posts := []models.PostData{}
 	for rows.Next() {
 		var post models.PostData
-		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Image, &post.Privacy, &post.Created_at); err != nil {
+		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content,  &post.Privacy, &post.Created_at); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)
@@ -84,14 +83,15 @@ func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) 
 
 func (repo *UserRepository) GetPostByID(postID, viewerID int64) (models.PostData, error) {
 	var post models.PostData
-	err := repo.db.QueryRow(postQuery+` WHERE p.id = ? AND (p.privacy = 'public' OR p.user_id = ? OR
+	err := repo.db.QueryRow(postQuery+` WHERE p.id = ? 
+	AND (p.privacy = 'public' OR p.user_id = ? OR
 		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = p.user_id)) OR
 		(p.privacy = 'private' AND EXISTS (SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?))`, postID, viewerID, viewerID, viewerID).
 		Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Image, &post.Privacy, &post.Created_at)
 	return post, err
 }
 
-const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.image_path, p.privacy, p.created_at
+const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.privacy, p.created_at
 	FROM posts p JOIN users u ON u.id = p.user_id`
 
 func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs []int64) error {

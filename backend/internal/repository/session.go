@@ -30,7 +30,7 @@ func (repo *UserRepository) GetSession(token string) (*models.Session, error) {
 		SELECT id, user_id, expires_at
 		FROM sessions
 		WHERE token = ?
-		AND expires_at > CURRENT_TIMESTAMP
+		
 	`
 
 	var session models.Session

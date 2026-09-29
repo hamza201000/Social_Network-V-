@@ -21,10 +21,11 @@ func (userHandler *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request)
 	user_id := r.Context().Value("user_id").(int64)
 	posts, err := userHandler.UserRepo.GetPosts(user_id)
 	if err != nil {
+		fmt.Println("error getposts:::",err)
 		SendError(w, http.StatusInternalServerError, "could not get posts")
 		return
 	}
-	SendJSON(w, http.StatusOK, models.Res{Data: posts})
+	SendJSON(w, http.StatusOK, models.Res{Message: "successfully retrieved posts",Data: posts})
 }
 
 func (userHandler *UserHandler) GetPostById(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +44,7 @@ func (userHandler *UserHandler) GetPostById(w http.ResponseWriter, r *http.Reque
 		SendError(w, http.StatusInternalServerError, "could not get post")
 		return
 	}
-	SendJSON(w, http.StatusOK, models.Res{Data: post})
+	SendJSON(w, http.StatusOK, models.Res{Message: "successfully retrieved post", Data: post})
 }
 
 func (userHandler *UserHandler) GetComments(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +68,7 @@ func (userHandler *UserHandler) GetComments(w http.ResponseWriter, r *http.Reque
 		SendError(w, http.StatusInternalServerError, "could not get comments")
 		return
 	}
-	SendJSON(w, http.StatusOK, models.Res{Data: comments})
+	SendJSON(w, http.StatusOK, models.Res{Message: "successfully retrieved comments", Data: comments})
 }
 
 func (userHandler *UserHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +95,7 @@ func (userHandler *UserHandler) CreatePost(w http.ResponseWriter, r *http.Reques
 	}
 	postID, err := userHandler.UserRepo.CreatePost(user_id, post)
 	if err != nil {
+		fmt.Println("error createpost:::",err)	
 		SendError(w, http.StatusInternalServerError, "could not create post")
 		return
 	}

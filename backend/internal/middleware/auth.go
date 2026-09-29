@@ -12,9 +12,10 @@ import (
 
 func Middleware(repo *repository.UserRepository, next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Cookie, err := r.Cookie("session_id")
+		
 		cookie, err := r.Cookie("session_id")
-		fmt.Println("cookie:::",cookie)
+		
+		fmt.Println("cookie:::",cookie.Value)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
 				handler.SendError(w, http.StatusUnauthorized, "Unauthorized")
@@ -23,11 +24,12 @@ func Middleware(repo *repository.UserRepository, next http.HandlerFunc) http.Han
 			handler.SendError(w, http.StatusBadRequest, "Bad Request")
 			return
 		}
-		session, err := repo.GetSession(cookie.Name)
+		session, err := repo.GetSession(cookie.Value)
 		if err != nil {
+			fmt.Println("error::",err)
 			if errors.Is(err, sql.ErrNoRows) {
 				handler.SendError(w, http.StatusUnauthorized, "Unauthorized")
-				return 
+				return
 			}
 			handler.SendError(w, http.StatusInternalServerError, "Bad Request")
 			return 

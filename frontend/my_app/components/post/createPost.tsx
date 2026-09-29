@@ -1,8 +1,11 @@
 "use client";
 import { resData } from "@/types/resData";
 import { useRef, useState } from "react";
+type CreatePostProps = {
+  onPostCreated: () => void;
+};
 
-export default function CreatePost() {
+export default function CreatePost({ onPostCreated }: CreatePostProps) {
     const [content, setContent] = useState("");
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -61,6 +64,7 @@ export default function CreatePost() {
             } finally {
                 setLoading(false)
             }
+            onPostCreated()
     
         }
 
@@ -97,7 +101,6 @@ export default function CreatePost() {
                 </div>
                 {imagePreview && (
                     <div className="avatar-preview-wrapper">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={imagePreview}
                             alt="Avatar preview"
