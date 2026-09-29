@@ -1,0 +1,16 @@
+.post {
+    flex: 1;
+  width: 100%;
+  max-width: auto;
+  margin: 16px auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}

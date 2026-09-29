@@ -45,26 +45,20 @@ export default function RegisterForm() {
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true)
-        let Data
-        let head = {}
         const Form = new FormData()
-        Form.append("firstName", firstName);
-        Form.append("lastName", lastName);
-        Form.append("userName", username);
+        Form.append("first_name", firstName);
+        Form.append("last_name", lastName);
+        Form.append("username", username);
         Form.append("email", email);
         Form.append("password", password);
         if (avatarFile) {
             Form.append("avatar", avatarFile);
-            Data = Form
-        } else {
-            Data = JSON.stringify(Form)
-            head = { "Content-Type": "application/json" }
-        }
+            
+        } 
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/register`, {
                 method: "POST",
-                headers: head,
-                body: Data,
+                body: Form,
                 credentials: "include"
             })
             const data: resData = await response.json()

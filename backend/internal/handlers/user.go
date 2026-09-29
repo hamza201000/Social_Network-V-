@@ -50,7 +50,7 @@ func (userHandler UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   60,
+		MaxAge:   3800,
 	}
 	http.SetCookie(w, cookie)
 	SendJSON(w, http.StatusOK, res)
