@@ -12,7 +12,7 @@
 	border: 1px solid rgba(37, 111, 90, 0.18);
 	border-radius: 8px;
 	background:
-		linear-gradient(115deg, rgba(220, 238, 232, 0.55), transparent 48%) top left / 100% 190px no-repeat,
+		
 		var(--surface, #fff);
 	box-shadow: 0 20px 55px rgba(20, 32, 28, 0.09);
 }

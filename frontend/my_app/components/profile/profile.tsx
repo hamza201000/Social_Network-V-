@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./profile.css"
 import Post from "../post/post";
+import { PostData } from "@/types/postData";
+import { UserData } from "@/types/userData";
 
 export type ProfileConnection = {
     id: string;
@@ -25,30 +27,55 @@ type ProfileProps = {
     following?: ProfileConnection[];
 };
 
-export default function Profile({ profile = {}, followers = [], following = [] }: ProfileProps) {
+export default function Profile({ username, myProfile }: { username: string, myProfile: boolean }) {
     const [openList, setOpenList] = useState<"followers" | "following" | null>(null);
-    const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
+    const [profile, setProfile] = useState<UserData>();
+    const [followers, setFollowers] = useState<ProfileConnection[]>([]);
+    const [following, setFollowing] = useState<ProfileConnection[]>([]);
+
+    // const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
     const activeConnections = openList === "followers" ? followers : following;
     const modalTitle = openList === "followers" ? "Followers" : "Following";
-
+    let apiUrl = `/api/user/${username}`;
+    if (myProfile) {
+        apiUrl = `/api/myprofile`;
+    }
+    useEffect( () => {
+        const fetchProfile = async () => {
+            try {
+                const response = await fetch(`http://localhost:8080${apiUrl}`, {
+                method: "GET",
+                credentials: "include"
+            });
+            if (!response.ok) {
+                throw new Error("Failed to fetch posts");
+            }
+            const data: UserData = await response.json();
+            setProfile(data);
+        } catch (error) {
+            console.error("Error fetching posts:", error);
+        }
+    }
+    fetchProfile();
+    }, [username, myProfile]);
     return (
         <div className="profile-container">
             <section className="profile-card" aria-labelledby="profile-title">
                 <header className="profile-header">
-                    <div className="profile-avatar" aria-label={profile.avatarUrl ? "Profile photo" : "No profile photo added"}>
-                        {profile.avatarUrl ? (
+                    <div className="profile-avatar" aria-label={profile?.avatarUrl ? "Profile photo" : "No profile photo added"}>
+                        {profile?.avatarUrl ? (
                             <img src={profile.avatarUrl} alt="Profile" />
                         ) : (
                             <span className="profile-avatar-placeholder" aria-hidden="true">
-                                {fullName ? fullName.slice(0, 1).toUpperCase() : "+"}
+                                +
                             </span>
                         )}
                     </div>
                     <div className="profile-identity">
                         <p className="profile-eyebrow">Profile</p>
-                        <h1 id="profile-title">{fullName}</h1>
+                        <h1 id="profile-title">{profile?.first_name || "User"}</h1>
                         <p className="profile-nickname">
-                            {profile.nickname ? `@${profile.nickname.replace(/^@/, "")}` : "Nickname not added"}
+                            {profile?.username ? `@${profile.username.replace(/^@/, "")}` : "Nickname not added"}
                         </p>
                     </div>
                 </header>
@@ -69,23 +96,23 @@ export default function Profile({ profile = {}, followers = [], following = [] }
                 <dl className="profile-details">
                     <div className="profile-detail">
                         <dt>First name</dt>
-                        <dd>{profile.firstName || "Not provided"}</dd>
+                        <dd>{profile?.first_name || "Not provided"}</dd>
                     </div>
                     <div className="profile-detail">
                         <dt>Last name</dt>
-                        <dd>{profile.lastName || "Not provided"}</dd>
+                        <dd>{profile?.last_name || "Not provided"}</dd>
                     </div>
                     <div className="profile-detail">
                         <dt>Date of birth</dt>
-                        <dd>{profile.dateOfBirth || "Not provided"}</dd>
+                        <dd>{profile?.date_of_birth || "Not provided"}</dd>
                     </div>
                     <div className="profile-detail">
                         <dt>Nickname</dt>
-                        <dd>{profile.nickname ? `@${profile.nickname.replace(/^@/, "")}` : "Not provided"}</dd>
+                        <dd>{profile?.username ? `@${profile.username.replace(/^@/, "")}` : "Not provided"}</dd>
                     </div>
                     <div className="profile-detail profile-about">
                         <dt>About me</dt>
-                        <dd>{profile.aboutMe || "Your story will appear here."}</dd>
+                        <dd>{profile?.about_me || "Your story will appear here."}</dd>
                     </div>
                 </dl>
             </section>
@@ -122,7 +149,7 @@ export default function Profile({ profile = {}, followers = [], following = [] }
                                 <li key={connection.id} className="connection-item">
                                     <div className="connection-avatar" aria-hidden="true">
                                         {connection.avatarUrl ? (
-                                            
+
                                             <img src={connection.avatarUrl} alt="" />
                                         ) : (
                                             <span>{connection.username.slice(0, 1).toUpperCase()}</span>
@@ -137,7 +164,7 @@ export default function Profile({ profile = {}, followers = [], following = [] }
                     </section>
                 </div>
             )}
-            <div className="profile-card" id="profile-posts"> 
+            <div className="profile-card" id="profile-posts">
                 <Post query={"goku"} />
             </div>
         </div>

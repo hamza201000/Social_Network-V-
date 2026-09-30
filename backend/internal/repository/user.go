@@ -124,3 +124,35 @@ func (repo *UserRepository) GetUserByUsername(username string) (models.User, err
 
 	return user, nil
 }
+
+func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
+
+	var user models.User
+
+	query := `
+		select id, first_name, last_name, username, email, avatar_url, date_of_birth, about_me, created_at
+		from users
+		WHERE id = $1
+	`
+	err := repo.db.QueryRow(
+		query,
+		userID,
+	).Scan(
+		&user.Id,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.Email,
+		&user.AvatarUrl,
+		&user.DateOfBirth,
+		&user.AboutMe,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		fmt.Println("error getting user:", err)
+		return user, err
+	}
+
+	return user, nil
+}

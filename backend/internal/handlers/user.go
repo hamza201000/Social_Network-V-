@@ -205,3 +205,16 @@ func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Req
 	res.Data = user
 	SendJSON(w, http.StatusOK, res)
 }
+func (userHandler UserHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
+	user_id := r.Context().Value("user_id").(int64)
+	user, err := userHandler.UserRepo.GetMyUserData(user_id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			SendError(w, http.StatusNotFound, "user not found")
+			return
+		}
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	SendJSON(w, http.StatusOK, user)
+}

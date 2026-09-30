@@ -7,7 +7,9 @@ type User struct {
 	Username     string `json:"username"`
 	Email        string `json:"email"`
 	Password        string `json:"-"`
-	Image        string `json:"image"`
+	AvatarUrl        string `json:"avatar_url"`
+	DateOfBirth    string `json:"date_of_birth"`
+	AboutMe        string `json:"about_me"`
 	CreatedAt    string `json:"created_at"`
 }
 
@@ -16,8 +18,10 @@ type RegisterRequest struct {
 	LastName  string `json:"last_name"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
-	Image        string `json:"image"`
+	AvatarUrl        string `json:"avatar_url"`
 	Password  string `json:"password"`
+	DateOfBirth    string `json:"date_of_birth"`
+	AboutMe        string `json:"about_me"`
 }
 
 type LoginRequest struct {
