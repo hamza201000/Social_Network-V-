@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users(
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     username TEXT NOT NULL,
-    image_path TEXT NOT NULL,
+    image_path TEXT NOT NULL DEFAULT '',
     email TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP

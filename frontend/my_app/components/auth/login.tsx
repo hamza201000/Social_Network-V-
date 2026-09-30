@@ -21,7 +21,7 @@ export default function LoginForm() {
         Form.append("password", password)
         const body = { username, password,email:username }
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/login`, {
+            const response = await fetch(`http://localhost:8080/api/login`, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify(body),

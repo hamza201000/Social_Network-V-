@@ -56,7 +56,7 @@ export default function RegisterForm() {
             
         } 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/register`, {
+            const response = await fetch(`http://localhost:8080/api/register`, {
                 method: "POST",
                 body: Form,
                 credentials: "include"

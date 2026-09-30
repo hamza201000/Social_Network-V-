@@ -1,19 +1,34 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Bar() {
-    return (
+    const pathname = usePathname();
 
+    const navItems = [
+        { href: "/", label: "🏠 Feed" },
+        { href: "/profile", label: "👤 Profile" },
+        { href: "/group", label: "👨‍👩‍👧‍👦 Groups" },
+        { href: "/chat", label: "💬 Chat" },
+        { href: "/Settings", label: "⚙️ Settings" },
+    ];
+
+    return (
         <aside className="sidebar-top">
             <nav className="nav-menu">
-                <Link href="/" className="nav-item active">🏠 Feed</Link>
-                <Link href="/profile" className="nav-item">👤 Profile</Link>
-                <Link href="/group" className="nav-item">👨‍👩‍👧‍👦 Groups</Link>
-                <Link href="/chat" className="nav-item">💬 Chat</Link>
-                <Link href="/Settings" className="nav-item">⚙️ Settings</Link>
+                {navItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`nav-item ${
+                            pathname === item.href ? "active" : ""
+                        }`}
+                    >
+                        {item.label}
+                    </Link>
+                ))}
             </nav>
         </aside>
-    )
-
-
+    );
 }

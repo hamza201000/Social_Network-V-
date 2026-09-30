@@ -22,12 +22,5 @@ export default function CardPost({ postData }: { postData: PostData }) {
                 )}
             </div>
         </article>
-
-
-
     )
-
-
-
-
 }

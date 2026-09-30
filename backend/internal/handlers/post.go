@@ -21,30 +21,31 @@ func (userHandler *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request)
 	user_id := r.Context().Value("user_id").(int64)
 	posts, err := userHandler.UserRepo.GetPosts(user_id)
 	if err != nil {
-		fmt.Println("error getposts:::",err)
+		fmt.Println("error getposts:::", err)
 		SendError(w, http.StatusInternalServerError, "could not get posts")
 		return
 	}
-	SendJSON(w, http.StatusOK, models.Res{Message: "successfully retrieved posts",Data: posts})
+	SendJSON(w, http.StatusOK, posts)
 }
 
-func (userHandler *UserHandler) GetPostById(w http.ResponseWriter, r *http.Request) {
-	postID, err := pathID(r)
-	if err != nil {
-		SendError(w, http.StatusBadRequest, "invalid post id")
+func (userHandler *UserHandler) GetPostByUsername(w http.ResponseWriter, r *http.Request) {
+	username := r.PathValue("username")
+	if username == "" {
+		SendError(w, http.StatusBadRequest, "invalid username")
 		return
 	}
 	user_id := r.Context().Value("user_id").(int64)
-	post, err := userHandler.UserRepo.GetPostByID(postID, user_id)
+	post, err := userHandler.UserRepo.GetPostByUsername(username, user_id)
 	if errors.Is(err, sql.ErrNoRows) {
 		SendError(w, http.StatusNotFound, "post not found")
 		return
 	}
 	if err != nil {
+		fmt.Println("error getpostbyusername:::", err)
 		SendError(w, http.StatusInternalServerError, "could not get post")
 		return
 	}
-	SendJSON(w, http.StatusOK, models.Res{Message: "successfully retrieved post", Data: post})
+	SendJSON(w, http.StatusOK, post)
 }
 
 func (userHandler *UserHandler) GetComments(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +96,7 @@ func (userHandler *UserHandler) CreatePost(w http.ResponseWriter, r *http.Reques
 	}
 	postID, err := userHandler.UserRepo.CreatePost(user_id, post)
 	if err != nil {
-		fmt.Println("error createpost:::",err)	
+		fmt.Println("error createpost:::", err)
 		SendError(w, http.StatusInternalServerError, "could not create post")
 		return
 	}

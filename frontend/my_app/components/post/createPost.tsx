@@ -7,6 +7,7 @@ type CreatePostProps = {
 
 export default function CreatePost({ onPostCreated }: CreatePostProps) {
     const [content, setContent] = useState("");
+    const [privacy, setPrivacy] = useState("public");
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -42,12 +43,13 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
             setLoading(true)
             const Form = new FormData()
             Form.append("content", content);
+            Form.append("privacy", privacy);
             if (image) {
                 Form.append("image", image);
             }
             try {
                 setLoading(true)
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/posts`, {
+                const response = await fetch(`http://localhost:8080/api/posts`, {
                     method: "POST",
                     body: Form,
                     credentials: "include"
@@ -63,9 +65,11 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
     
             } finally {
                 setLoading(false)
+                setContent("")
+                setPrivacy("public")
+                setImage(null)
             }
             onPostCreated()
-    
         }
 
     return (
@@ -75,6 +79,23 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
             />
+            <div className="post-privacy-field">
+                <label htmlFor="post-privacy">Who can see this post:</label>
+                <select
+                    id="post-privacy"
+                    value={privacy}
+                    onChange={(e) => setPrivacy(e.target.value)}
+                >
+                    <option value="public">Public</option>
+                    <option value="almost_private">Almost private</option>
+                    <option value="private">Private</option>
+                </select>
+                <span>
+                    {privacy === "public" && "Visible to everyone"}
+                    {privacy === "almost_private" && "Visible to your followers"}
+                    {privacy === "private" && "Visible to followers you choose"}
+                </span>
+            </div>
             <div className="avatar-upload-wrapper">
                 <span className="avatar-upload-label">Profile image</span>
                 <div className="avatar-upload-row">

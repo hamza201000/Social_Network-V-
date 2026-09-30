@@ -73,7 +73,7 @@ func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) 
 	posts := []models.PostData{}
 	for rows.Next() {
 		var post models.PostData
-		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content,  &post.Privacy, &post.Created_at); err != nil {
+		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Privacy, &post.Created_at); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)
@@ -81,14 +81,48 @@ func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) 
 	return posts, rows.Err()
 }
 
-func (repo *UserRepository) GetPostByID(postID, viewerID int64) (models.PostData, error) {
+func (repo *UserRepository) GetPostByUsername(username string, viewerID int64) ([]models.PostData, error) {
 	var post models.PostData
-	err := repo.db.QueryRow(postQuery+` WHERE p.id = ? 
-	AND (p.privacy = 'public' OR p.user_id = ? OR
-		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = p.user_id)) OR
-		(p.privacy = 'private' AND EXISTS (SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?))`, postID, viewerID, viewerID, viewerID).
-		Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Image, &post.Privacy, &post.Created_at)
-	return post, err
+	rows, err := repo.db.Query(postQuery+` WHERE u.username = $1 
+	AND (p.privacy = 'public' 
+		OR p.user_id = $2 
+		OR
+		(p.privacy = 'almost_private' AND EXISTS (
+			SELECT 1 FROM followers f WHERE f.follower_id = $2 
+			AND f.following_id = p.user_id)) 
+		OR
+		(p.privacy = 'private' AND EXISTS (
+			SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id 
+			AND a.user_id = $2))
+		)`,
+	username, viewerID)
+
+	if err != nil {
+		fmt.Println("error getpostbyusername database", err)
+		return nil, err
+	}
+	defer rows.Close()
+	var postList []models.PostData
+	for rows.Next() {
+		if err := rows.Scan(
+			&post.Id, 
+			&post.User_id, 
+			&post.Username, 
+			&post.Content, 
+			&post.Privacy, 
+			&post.Created_at);
+			 err != nil {
+			return nil, err
+		}
+		postList = append(postList, post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(postList) == 0 {
+		return nil, fmt.Errorf("no posts found for username: %s", username)
+	}
+	return postList, nil
 }
 
 const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.privacy, p.created_at
@@ -97,7 +131,7 @@ const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.privacy, p.c
 func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs []int64) error {
 	for _, followerID := range followerIDs {
 		var exists int
-		err := repo.db.QueryRow("SELECT EXISTS (SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ?)", followerID, userID).Scan(&exists)
+		err := repo.db.QueryRow("SELECT EXISTS (SELECT 1 FROM followers WHERE follower_id = $1 AND following_id = $2)", followerID, userID).Scan(&exists)
 		if err != nil {
 			return err
 		}
@@ -107,3 +141,5 @@ func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs [
 	}
 	return nil
 }
+
+

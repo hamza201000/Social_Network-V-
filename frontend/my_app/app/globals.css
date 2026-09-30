@@ -27,7 +27,6 @@ body {
   color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
    display: flex;
-  min-height: 100vh;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -78,7 +77,6 @@ select:focus {
   width: 100%;
   padding: 0.75rem 1.25rem;
   border-bottom: 1px solid rgba(70, 138, 104, 0.22);
-  background: linear-gradient(115deg, rgba(220, 238, 232, 0.96), rgba(255, 255, 255, 0.98) 62%, rgba(248, 225, 190, 0.72));
   box-shadow: 0 8px 24px rgba(20, 32, 28, 0.07);
   backdrop-filter: blur(14px);
 }

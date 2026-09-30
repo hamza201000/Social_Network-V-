@@ -35,6 +35,44 @@
   outline: 3px solid rgba(37, 111, 90, 0.14);
 }
 
+.post-privacy-field {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(180px, 1.4fr);
+  align-items: center;
+  gap: 5px 14px;
+  width: 100%;
+}
+
+.post-privacy-field label {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.post-privacy-field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 38px 8px 12px;
+  border: 1px solid rgba(70, 138, 104, 0.55);
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.post-privacy-field select:focus-visible {
+  border-color: var(--accent);
+  outline: 3px solid rgba(37, 111, 90, 0.14);
+}
+
+.post-privacy-field span {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .create-post .primary-button {
   min-width: 127px;
  
@@ -108,6 +146,14 @@
 @media (max-width: 560px) {
   .create-post {
     padding: 14px;
+  }
+
+  .post-privacy-field {
+    grid-template-columns: 1fr;
+  }
+
+  .post-privacy-field span {
+    grid-column: 1;
   }
 
   .post {
