@@ -2,7 +2,6 @@
 "use client"
 
 import { resData } from "@/types/resData";
-import { FORMERR } from "dns";
 import { useRef, useState } from "react";
 import "./auth.css"
 import Link from "next/link";
@@ -13,6 +12,8 @@ export default function RegisterForm() {
     const [username, setUsername] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
+    const [dateOfBirth, setDateOfBirth] = useState("");
+    const [aboutMe, setAboutMe] = useState("");
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -51,6 +52,8 @@ export default function RegisterForm() {
         Form.append("username", username);
         Form.append("email", email);
         Form.append("password", password);
+        Form.append("date_of_birth", dateOfBirth);
+        Form.append("about_me", aboutMe);
         if (avatarFile) {
             Form.append("avatar", avatarFile);
             
@@ -118,6 +121,14 @@ export default function RegisterForm() {
                             placeholder="mina"
                         />
                     </label>
+                    <label>
+                        Date of birth
+                        <input
+                            type="date"
+                            value={dateOfBirth}
+                            onChange={(e) => setDateOfBirth(e.target.value)}
+                        />
+                    </label>
                    
                     <div className="avatar-upload-wrapper">
                         <span className="avatar-upload-label">Profile image</span>
@@ -171,6 +182,17 @@ export default function RegisterForm() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
                         />
+                    </label>
+                    <label className="auth-about-field">
+                        About me <span className="auth-field-optional">Optional</span>
+                        <textarea
+                            value={aboutMe}
+                            onChange={(e) => setAboutMe(e.target.value)}
+                            placeholder="A little about you..."
+                            maxLength={500}
+                            rows={4}
+                        />
+                        <span className="auth-field-hint">Up to 500 characters</span>
                     </label>
                 </div>
                 {error && <div className="error">{String(error)}</div>}

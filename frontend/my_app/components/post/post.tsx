@@ -8,10 +8,10 @@ import { log } from "util";
 
 
 
-export default function Post({ query }: { query: string | undefined }) {
+export default function Post({ query, myposts }: { query: string | undefined, myposts: boolean }) {
 
     const [posts, setPosts] = useState<PostData[]>([]);
-    const apiKey= query ? `/api/posts/${query}` : "/api/posts";
+    const apiKey = query ? (myposts ? `/api/myposts` : `/api/posts/${query}`) : "/api/posts";
     const fetchPosts = async () => {
         try {
             const response = await fetch(`http://localhost:8080${apiKey}`, {
@@ -36,9 +36,15 @@ export default function Post({ query }: { query: string | undefined }) {
 
         <div className="feed">
             {!query && <CreatePost onPostCreated={fetchPosts} />}
-            {posts.length > 0 && posts.map((post) => (
-                <CardPost key={post.id} postData={post} />
-            ))}
+            
+                {posts?.length > 0 ? posts.map((post) => (
+                    <CardPost key={post.id} postData={post} />
+                )) : (
+                    <div className="post">
+                        <p>No posts available.</p>
+                    </div>
+                )}
+            
         </div>
     );
 }

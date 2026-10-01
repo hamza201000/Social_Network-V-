@@ -83,6 +83,8 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	userData.Username = strings.TrimSpace(r.FormValue("username"))
 	userData.Email = strings.TrimSpace(r.FormValue("email"))
 	userData.Password = r.FormValue("password")
+	userData.DateOfBirth = strings.TrimSpace(r.FormValue("date_of_birth"))
+	userData.AboutMe = strings.TrimSpace(r.FormValue("about_me"))
 
 	err := services.RegisterRequest(userData)
 	fmt.Println(userData)
@@ -184,15 +186,14 @@ func (userHandler UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
-	var res models.Res
-	username := r.URL.Query().Get("username")
-	fmt.Println(username)
+	username := r.PathValue("username")
+	fmt.Println("userbyusername", username)
 	if username == "" {
 		SendError(w, http.StatusBadRequest, "username is required")
 		return
 	}
-
-	user, err := userHandler.UserRepo.GetUserByUsername(username)
+	user_id := r.Context().Value("user_id").(int64)
+	user, err := userHandler.UserRepo.GetUserByUsername(user_id, username)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			SendError(w, http.StatusNotFound, "user not found")
@@ -202,7 +203,22 @@ func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Req
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-	res.Data = user
+	SendJSON(w, http.StatusOK, user)
+}
+func (userHandler UserHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
+	username := r.PathValue("username")
+	if username == "" {
+		SendError(w, http.StatusBadRequest, "username is required")
+		return
+	}
+	user_id := r.Context().Value("user_id").(int64)
+	err := userHandler.UserRepo.FollowUser(user_id,username)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+
+	res := models.Res{Message: "user followed successfully"}
 	SendJSON(w, http.StatusOK, res)
 }
 func (userHandler UserHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {

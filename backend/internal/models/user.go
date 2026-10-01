@@ -10,6 +10,7 @@ type User struct {
 	AvatarUrl        string `json:"avatar_url"`
 	DateOfBirth    string `json:"date_of_birth"`
 	AboutMe        string `json:"about_me"`
+	FollowedByMe bool   `json:"followed_by_me"`
 	CreatedAt    string `json:"created_at"`
 }
 

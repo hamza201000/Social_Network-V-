@@ -166,3 +166,16 @@
     gap: 4px;
   }
 }
+
+.no-posts{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 18px;
+  color: var(--accent);
+  font-size: 1rem;
+  text-align: center;
+  
+}

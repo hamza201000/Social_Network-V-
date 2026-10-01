@@ -12,5 +12,5 @@ func PostRouter(mux *http.ServeMux, userHandler *handler.UserHandler) {
 	mux.HandleFunc("POST /api/posts", middleware.Middleware(userHandler.UserRepo, userHandler.CreatePost))
 	mux.HandleFunc("GET /api/posts", middleware.Middleware(userHandler.UserRepo, userHandler.GetPosts))
 	mux.HandleFunc("GET /api/posts/{username}", middleware.Middleware(userHandler.UserRepo, userHandler.GetPostByUsername))
-
+	mux.HandleFunc("GET /api/myposts", middleware.Middleware(userHandler.UserRepo, userHandler.GetPostMyPosts))
 }

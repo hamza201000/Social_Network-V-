@@ -22,11 +22,11 @@ html {
 }
 
 body {
-  
+
   background: var(--page);
   color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
-   display: flex;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -222,6 +222,18 @@ select:focus {
   border-radius: var(--radius);
   padding: 0;
   background: transparent;
+}
+
+.feed-container {
+  margin: 0 0 20px;
+  overflow: hidden;
+  border: 1px solid rgba(37, 111, 90, 0.18);
+  border-radius: 8px;
+  background:
+
+    var(--surface, #fff);
+  box-shadow: 0 20px 55px rgba(20, 32, 28, 0.09);
+
 }
 
 .primary-button {

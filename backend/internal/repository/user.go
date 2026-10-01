@@ -8,11 +8,11 @@ import (
 
 func (repo *UserRepository) RegisterUser(user models.RegisterRequest) error {
 
-	qeury := `INSERT INTO users 
-	(first_name,last_name,username,email,password_hash)
-	VALUES ($1, $2, $3, $4, $5)
+	qeury := `INSERT INTO users
+	(first_name,last_name,username,email,password_hash,date_of_birth,about_me)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
-	result, err := repo.db.Exec(qeury, user.FirstName, user.LastName, user.Username, user.Email, user.Password)
+	result, err := repo.db.Exec(qeury, user.FirstName, user.LastName, user.Username, user.Email, user.Password, user.DateOfBirth, user.AboutMe)
 	if err != nil {
 		fmt.Println("err database", err)
 		return err
@@ -91,30 +91,38 @@ func (repo *UserRepository) DeleteSession(sessionID string) error {
 	return nil
 }
 
-func (repo *UserRepository) GetUserByUsername(username string) (models.User, error) {
+func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (models.User, error) {
 
 	var user models.User
 
 	query := `
 		SELECT
-			id,
-			first_name,
-			last_name,
-			username,
-			email
-		FROM users
-		WHERE username = $1
+			u.id,
+			u.first_name,
+			u.last_name,
+			u.username,
+			u.email,
+			EXISTS (
+          			SELECT 1
+          			FROM followers f
+          			WHERE f.follower_id = $2
+            		AND f.following_target_id = u.id
+          		) AS followed_by_me
+		FROM users u
+		WHERE u.username = $1
 	`
 
 	err := repo.db.QueryRow(
 		query,
 		username,
+		user_id,
 	).Scan(
 		&user.Id,
 		&user.FirstName,
 		&user.LastName,
 		&user.Username,
 		&user.Email,
+		&user.FollowedByMe,
 	)
 
 	if err != nil {
@@ -130,8 +138,8 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 	var user models.User
 
 	query := `
-		select id, first_name, last_name, username, email, avatar_url, date_of_birth, about_me, created_at
-		from users
+		SELECT id, first_name, last_name, username, email, avatar_url, date_of_birth, about_me, created_at
+		FROM users
 		WHERE id = $1
 	`
 	err := repo.db.QueryRow(
@@ -155,4 +163,25 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 	}
 
 	return user, nil
+}
+func (repo *UserRepository) FollowUser(follower_id int64, username string) error {
+	
+	query := `
+		DELETE FROM followers
+WHERE follower_id = $2
+  AND following_target_id = (
+      SELECT id
+      FROM users
+      WHERE username = $1
+  )`
+	_,err := repo.db.Exec(query, username, follower_id)
+	if err == sql.ErrNoRows {
+		_, err = repo.db.Exec(`INSERT INTO followers (follower_id, following_target_id) 
+								SELECT $1, id FROM users WHERE username = $2`, follower_id, username)
+	}
+	if err != nil {
+		fmt.Println("error following user:", err)
+		return err
+	}
+	return nil
 }

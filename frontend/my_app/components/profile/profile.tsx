@@ -40,23 +40,24 @@ export default function Profile({ username, myProfile }: { username: string, myP
     if (myProfile) {
         apiUrl = `/api/myprofile`;
     }
-    useEffect( () => {
+    useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await fetch(`http://localhost:8080${apiUrl}`, {
-                method: "GET",
-                credentials: "include"
-            });
-            if (!response.ok) {
-                throw new Error("Failed to fetch posts");
+                const response = await fetch(`http://localhost:8080/api/user/${username}/follow`, {
+                    method: "GET",
+                    credentials: "include"
+                });
+                if (!response.ok) {
+                    throw new Error("Failed to fetch profile data");
+                }
+                const data: UserData = await response.json();
+                setProfile(data);
+                console.log("Profile data fetched successfully:", data);
+            } catch (error) {
+                console.error("Error fetching profile data:", error);
             }
-            const data: UserData = await response.json();
-            setProfile(data);
-        } catch (error) {
-            console.error("Error fetching posts:", error);
         }
-    }
-    fetchProfile();
+        fetchProfile();
     }, [username, myProfile]);
     return (
         <div className="profile-container">
@@ -74,9 +75,7 @@ export default function Profile({ username, myProfile }: { username: string, myP
                     <div className="profile-identity">
                         <p className="profile-eyebrow">Profile</p>
                         <h1 id="profile-title">{profile?.first_name || "User"}</h1>
-                        <p className="profile-nickname">
-                            {profile?.username ? `@${profile.username.replace(/^@/, "")}` : "Nickname not added"}
-                        </p>
+
                     </div>
                 </header>
 
@@ -108,7 +107,7 @@ export default function Profile({ username, myProfile }: { username: string, myP
                     </div>
                     <div className="profile-detail">
                         <dt>Nickname</dt>
-                        <dd>{profile?.username ? `@${profile.username.replace(/^@/, "")}` : "Not provided"}</dd>
+                        <dd>{profile?.username ? `${profile.username}` : "Not provided"}</dd>
                     </div>
                     <div className="profile-detail profile-about">
                         <dt>About me</dt>
@@ -165,7 +164,7 @@ export default function Profile({ username, myProfile }: { username: string, myP
                 </div>
             )}
             <div className="profile-card" id="profile-posts">
-                <Post query={"goku"} />
+                <Post query={username} myposts={myProfile} />
             </div>
         </div>
     );

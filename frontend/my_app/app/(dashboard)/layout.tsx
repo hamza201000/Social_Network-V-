@@ -11,5 +11,5 @@ export default function DashboardLayout({
             <Bar />
             {children}
         </>
-    );
+    )
 }

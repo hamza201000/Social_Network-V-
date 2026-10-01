@@ -241,3 +241,20 @@ func saveUploadedImage(r *http.Request, field string) (string, error) {
 	}
 	return path, nil
 }
+
+
+func (userHandler *UserHandler) GetPostMyPosts(w http.ResponseWriter, r *http.Request) {
+	
+	user_id := r.Context().Value("user_id").(int64)
+	post, err := userHandler.UserRepo.GetPostMyPosts(user_id)
+	if errors.Is(err, sql.ErrNoRows) {
+		SendError(w, http.StatusNotFound, "post not found")
+		return
+	}
+	if err != nil {
+		fmt.Println("error getpostmyposts:::", err)
+		SendError(w, http.StatusInternalServerError, "could not get post")
+		return
+	}
+	SendJSON(w, http.StatusOK, post)
+}

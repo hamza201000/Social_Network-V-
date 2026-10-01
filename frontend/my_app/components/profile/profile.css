@@ -90,18 +90,23 @@
 	border: 1px solid rgba(37, 111, 90, 0.2);
 	border-radius: 6px;
 	background: rgba(255, 255, 255, 0.72);
-	color: var(--muted, #69776f);
+	/* color: var(--muted, #69776f); */
 	font-size: 0.88rem;
 	transition: background 150ms ease, border-color 150ms ease;
 }
+
 
 .profile-connection-button:hover {
 	border-color: var(--accent, #256f5a);
 	background: var(--accent-soft, #dceee8);
 }
 
-.profile-connection-button strong {
-	color: var(--text, #17201c);
+.profile-connection-button  span {
+	color: var(--accent, #174f40);
+	font-size: 0.95rem;
+}
+.profile-connection-button  strong {
+	color: var(--accent, #174f40);
 	font-size: 0.95rem;
 }
 
@@ -224,6 +229,7 @@
 	gap: 0;
 	margin: 0;
 	padding: 10px 44px 32px;
+	
 }
 
 .profile-detail {
@@ -239,7 +245,7 @@
 
 .profile-detail dt {
 	margin-bottom: 8px;
-	color: var(--muted, #69776f);
+	color: var(--accent);
 	font-size: 0.78rem;
 	font-weight: 700;
 	text-transform: uppercase;

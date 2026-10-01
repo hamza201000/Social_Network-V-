@@ -28,9 +28,8 @@ func (r *UserRepository) CreateSession(userID int64) (uuid.UUID, error) {
 func (repo *UserRepository) GetSession(token string) (*models.Session, error) {
 	query := `
 		SELECT id, user_id, expires_at
-		FROM sessions
+		FROM sessions 
 		WHERE token = ?
-		
 	`
 
 	var session models.Session

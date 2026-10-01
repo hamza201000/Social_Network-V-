@@ -27,7 +27,7 @@ func (repo *UserRepository) CreatePost(userID int64, post models.PostRequest) (i
 		_, err = transaction.Exec(
 			`INSERT INTO post_allowed_users (post_id, user_id)
 			 SELECT ?, ? WHERE EXISTS (
-				SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ?
+				SELECT 1 FROM followers WHERE follower_id = ? AND following_target_id = ?
 			 )`,
 			postID, followerID, followerID, userID,
 		)
@@ -50,7 +50,7 @@ func (repo *UserRepository) CanViewPost(postID, viewerID int64) (bool, error) {
 			WHERE p.id = ? AND (
 				p.privacy = 'public' OR p.user_id = ? OR
 				(p.privacy = 'almost_private' AND EXISTS (
-					SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = p.user_id
+					SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id
 				)) OR
 				(p.privacy = 'private' AND EXISTS (
 					SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?
@@ -62,7 +62,7 @@ func (repo *UserRepository) CanViewPost(postID, viewerID int64) (bool, error) {
 
 func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) {
 	rows, err := repo.db.Query(postQuery+` WHERE p.privacy = 'public' OR p.user_id = ? OR
-		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = p.user_id)) OR
+		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id)) OR
 		(p.privacy = 'private' AND EXISTS (SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?))
 		ORDER BY p.created_at DESC`, viewerID, viewerID, viewerID)
 	if err != nil {
@@ -89,7 +89,7 @@ func (repo *UserRepository) GetPostByUsername(username string, viewerID int64) (
 		OR
 		(p.privacy = 'almost_private' AND EXISTS (
 			SELECT 1 FROM followers f WHERE f.follower_id = $2 
-			AND f.following_id = p.user_id)) 
+			AND f.following_target_id = p.user_id)) 
 		OR
 		(p.privacy = 'private' AND EXISTS (
 			SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id 
@@ -131,7 +131,7 @@ const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.privacy, p.c
 func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs []int64) error {
 	for _, followerID := range followerIDs {
 		var exists int
-		err := repo.db.QueryRow("SELECT EXISTS (SELECT 1 FROM followers WHERE follower_id = $1 AND following_id = $2)", followerID, userID).Scan(&exists)
+		err := repo.db.QueryRow("SELECT EXISTS (SELECT 1 FROM followers WHERE follower_id = $1 AND following_target_id = $2)", followerID, userID).Scan(&exists)
 		if err != nil {
 			return err
 		}
@@ -143,3 +143,32 @@ func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs [
 }
 
 
+
+func (repo *UserRepository) GetPostMyPosts(user_id int64) ([]models.PostData, error) {
+	var post models.PostData
+	rows, err := repo.db.Query(postQuery+` WHERE u.id = $1`,
+	user_id)
+	if err != nil {
+		fmt.Println("error GetPostMyPosts database", err)
+		return nil, err
+	}
+	defer rows.Close()
+	var postList []models.PostData
+	for rows.Next() {
+		if err := rows.Scan(
+			&post.Id, 
+			&post.User_id, 
+			&post.Username, 
+			&post.Content, 
+			&post.Privacy, 
+			&post.Created_at);
+			 err != nil {
+			return nil, err
+		}
+		postList = append(postList, post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return postList, nil
+}

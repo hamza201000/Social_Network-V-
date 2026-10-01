@@ -13,7 +13,7 @@ export default function Home() {
 
   return (
     <>
-      <Post query={undefined} />;
+      <Post query={undefined} myposts={false} />
     </>
     )
 }

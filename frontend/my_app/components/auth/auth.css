@@ -72,6 +72,36 @@
   grid-column: 1 / -1;
 }
 
+.auth-name-grid .auth-about-field {
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+
+.auth-about-field textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  color: var(--text);
+  padding: 11px 12px;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.auth-about-field textarea:focus {
+  border-color: var(--accent);
+  outline: 3px solid rgba(37, 111, 90, 0.16);
+}
+
+.auth-field-optional,
+.auth-field-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
 .auth-footer {
   margin: 0;
   color: var(--muted);

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"time"
+	"unicode/utf8"
 )
 
 func RegisterRequest(userData models.RegisterRequest) error {
@@ -59,6 +61,20 @@ func RegisterRequest(userData models.RegisterRequest) error {
 
 	if len(userData.Password) > 72 {
 		return errors.New("password must not exceed 72 characters")
+	}
+
+	if userData.DateOfBirth != "" {
+		dateOfBirth, err := time.Parse("2006-01-02", userData.DateOfBirth)
+		if err != nil {
+			return errors.New("date of birth must be a valid date")
+		}
+		if dateOfBirth.After(time.Now()) {
+			return errors.New("date of birth cannot be in the future")
+		}
+	}
+
+	if utf8.RuneCountInString(userData.AboutMe) > 500 {
+		return errors.New("about me must not exceed 500 characters")
 	}
 	return nil
 }

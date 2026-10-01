@@ -1,5 +1,4 @@
 import Profile from "@/components/profile/profile";
-import { useParams } from "next/dist/client/components/navigation";
 
 
 export default async function UserProfilePage({params}: {params: {username: string}}) {
