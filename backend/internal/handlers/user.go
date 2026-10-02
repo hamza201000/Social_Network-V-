@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"net/http"
@@ -206,18 +207,19 @@ func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Req
 	SendJSON(w, http.StatusOK, user)
 }
 func (userHandler UserHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
-	username := r.PathValue("username")
-	if username == "" {
-		SendError(w, http.StatusBadRequest, "username is required")
+	fmt.Println("in")
+	following_target_id:=r.URL.Query().Get("user_id")
+	user_target,err:=strconv.Atoi(following_target_id)
+	if err!=nil{
+		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
 	user_id := r.Context().Value("user_id").(int64)
-	err := userHandler.UserRepo.FollowUser(user_id,username)
+	err = userHandler.UserRepo.FollowUser(user_id,int64(user_target))
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-
 	res := models.Res{Message: "user followed successfully"}
 	SendJSON(w, http.StatusOK, res)
 }

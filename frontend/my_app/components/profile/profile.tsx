@@ -5,6 +5,8 @@ import "./profile.css"
 import Post from "../post/post";
 import { PostData } from "@/types/postData";
 import { UserData } from "@/types/userData";
+import Follow from "./follow";
+
 
 export type ProfileConnection = {
     id: string;
@@ -21,13 +23,14 @@ export type ProfileData = {
     aboutMe?: string;
 };
 
-type ProfileProps = {
-    profile?: ProfileData;
-    followers?: ProfileConnection[];
-    following?: ProfileConnection[];
-};
+// type ProfileProps = {
+//     profile?: ProfileData;
+//     followers?: ProfileConnectionimport Follow from "./follow";
+// [];
+//     following?: ProfileConnection[];
+// };
 
-export default function Profile({ username, myProfile }: { username: string, myProfile: boolean }) {
+export default  function Profile({ username, myProfile }: { username: string, myProfile: boolean }) {
     const [openList, setOpenList] = useState<"followers" | "following" | null>(null);
     const [profile, setProfile] = useState<UserData>();
     const [followers, setFollowers] = useState<ProfileConnection[]>([]);
@@ -40,25 +43,27 @@ export default function Profile({ username, myProfile }: { username: string, myP
     if (myProfile) {
         apiUrl = `/api/myprofile`;
     }
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const response = await fetch(`http://localhost:8080/api/user/${username}/follow`, {
-                    method: "GET",
-                    credentials: "include"
-                });
-                if (!response.ok) {
-                    throw new Error("Failed to fetch profile data");
-                }
-                const data: UserData = await response.json();
-                setProfile(data);
-                console.log("Profile data fetched successfully:", data);
-            } catch (error) {
-                console.error("Error fetching profile data:", error);
+    console.log("is my profile",myProfile);
+    
+    const fetchProfile = async () => {
+        try {
+            const response = await fetch(`http://localhost:8080${apiUrl}`, {
+                method: "GET",
+                credentials: "include"
+            });
+            if (!response.ok) {
+                throw new Error("Failed to fetch profile data");
             }
+            const data: UserData = await response.json();
+            setProfile(data);
+            console.log("Profile data fetched successfully:", data);
+        } catch (error) {
+            console.error("Error fetching profile data:", error);
         }
+    }
+    useEffect(() => {
         fetchProfile();
-    }, [username, myProfile]);
+    }, []);
     return (
         <div className="profile-container">
             <section className="profile-card" aria-labelledby="profile-title">
@@ -75,8 +80,9 @@ export default function Profile({ username, myProfile }: { username: string, myP
                     <div className="profile-identity">
                         <p className="profile-eyebrow">Profile</p>
                         <h1 id="profile-title">{profile?.first_name || "User"}</h1>
-
                     </div>
+                    {!myProfile ?  <Follow isFollowed={profile?.followed_by_me}  user_id={profile?.user_id} />:<></> }
+                    
                 </header>
 
                 <div className="profile-connections" aria-label="Connections">

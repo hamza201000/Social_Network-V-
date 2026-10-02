@@ -7,5 +7,6 @@ export type UserData = {
   avatarUrl: string;
   date_of_birth: string;
   about_me: string;
+  followed_by_me:boolean;
   created_at: string;
 };

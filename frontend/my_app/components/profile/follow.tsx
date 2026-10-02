@@ -1,17 +1,18 @@
 "use client"
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 
 
-export default function Follow({ username }: { username: string }) {
-    const [Followed, setFollowed] = useState(false);
-    
+export default function Follow({ user_id, isFollowed }: { isFollowed: boolean | undefined, user_id: number | undefined }) {
+    const [Followed, setFollowed] = useState(isFollowed);
 
-
+    useEffect(() => {
+        setFollowed(isFollowed);
+    }, [isFollowed]);
     const followUser = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/api/user/${username}/follow`, {
+            const response = await fetch(`http://localhost:8080/api/user/follow${user_id ? `?user_id=${user_id}` : ''}`, {
                 method: "GET",
                 credentials: "include"
             });
@@ -19,7 +20,7 @@ export default function Follow({ username }: { username: string }) {
                 throw new Error("Failed to follow user");
             }
             if (response.ok) {
-               Followed ?  setFollowed(false) : setFollowed(true);
+                 setFollowed(pev=>!pev) 
             }
         } catch (error) {
             console.error("Error following user:", error);
