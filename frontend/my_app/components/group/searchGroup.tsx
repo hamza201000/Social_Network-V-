@@ -1,30 +1,47 @@
 "use client";
 
-type SearchGroupProps = {
-  query: string;
-  onQueryChange: (query: string) => void;
-};
+import { useDebounce } from "@/hooks/debounce";
+import { error } from "console";
+import { useEffect, useState } from "react";
 
-export default function SearchGroup({ query, onQueryChange }: SearchGroupProps) {
+
+// type SearchGroupProps = {
+//   query: string;
+//   onQueryChange: (query: string) => void;
+// };
+
+export default function SearchGroup() {
+  const [query, setQeury] = useState("")
+
+  const debouncedQuery = useDebounce(query, 300);
+  const search = async (q:string) => {
+    try {
+
+      const response = await fetch(
+        `http://localhost:8080/api/groups/search?q=${encodeURIComponent(q)}`, {
+        credentials: "include",
+      }
+      );
+      const data = await response.json();
+      console.log("data shearch",data);
+    } catch (err) {
+      throw console.error("error shearch data");
+    }
+  }
+  useEffect(() => {
+    if (debouncedQuery.trim()) search(debouncedQuery)
+    }, [debouncedQuery])
+
+
   return (
     <label className="group-search" htmlFor="group-search-input">
-      <svg
-        aria-hidden="true"
-        className="group-search-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-      >
-        <circle cx="10.8" cy="10.8" r="6.8" />
-        <path d="m16 16 4.5 4.5" />
-      </svg>
       <input
         id="group-search-input"
         type="search"
         placeholder="Search groups by name, topic, or description"
         value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
+        onChange={(event) => setQeury(event.target.value)}
       />
-      <span className="group-search-shortcut" aria-hidden="true">⌕</span>
     </label>
   );
 }

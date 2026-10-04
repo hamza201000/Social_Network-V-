@@ -12,6 +12,7 @@ func Routers(userHandler *handler.UserHandler) *http.ServeMux {
 	PostRouter(mux, userHandler)
 	CommentRouter(mux, userHandler)
 	UserRouter(mux, userHandler)
+	GroupRouter(mux, userHandler)
 	middleware.Logging(mux)
 	return mux
 }

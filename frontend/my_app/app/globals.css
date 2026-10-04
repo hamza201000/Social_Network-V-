@@ -44,14 +44,14 @@ select {
   cursor: pointer;
 }
 
-label {
+/* label {
   display: flex;
   flex-direction: column;
   gap: 7px;
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
-}
+} */
 
 input,
 select {

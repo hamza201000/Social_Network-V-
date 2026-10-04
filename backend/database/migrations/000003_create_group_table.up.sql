@@ -1,20 +1,20 @@
-CREATE TABLE  IF NOT EXISTS group(
+CREATE TABLE  IF NOT EXISTS groups(
     id INTEGER PRIMARY KEY  AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    admin_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     description_gp TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-)
+    FOREIGN KEY (admin_id) REFERENCES users(id)
+);
 
 CREATE TABLE IF NOT EXISTS members_gp(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     group_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES group(id),
+    FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-)
+);
 
 CREATE TABLE IF NOT EXISTS members_status(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,6 +22,6 @@ CREATE TABLE IF NOT EXISTS members_status(
     user_id INTEGER NOT NULL,
     member_status TEXT NOT NULL DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES group(id),
+    FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-)
+);

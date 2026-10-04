@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Group, GroupRequest } from "@/types/groupData";
+import { error } from "console";
 
 type CardGroupProps = {
   group: Group;
@@ -42,14 +43,14 @@ export default function CardGroup({
   group,
   isMember,
   isRequested,
-  onRequestToJoin,
+  
   onAcceptRequest,
   onDeclineRequest,
   onInvite,
 }: CardGroupProps) {
   const [inviteUsername, setInviteUsername] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
-  const isOwner = group.creator === "You";
+  const isOwner =  group.admin_name === "You";
 
   function handleInvite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,16 +60,25 @@ export default function CardGroup({
     setInviteMessage(`Invite sent to @${username}`);
     setInviteUsername("");
   }
+  const onRequestToJoin=async (groupId: string) => {
+    try{
+      const response =await fetch(`http://localhost:8080/api/groups/${groupId}/join`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.ok){
+        setInviteMessage(`Join to group has been send`);
+      }
+    }catch (err){
+      console.log("error join group ",err)
+    }
+  }
 
   return (
     <article className="group-card">
-      <div className="group-card-cover" style={{ "--group-color": group.color } as React.CSSProperties}>
-        <span className="group-card-monogram" aria-hidden="true">{group.name.slice(0, 1).toUpperCase()}</span>
-        <span className="group-category">{group.category}</span>
-      </div>
       <div className="group-card-content">
         <div className="group-card-title-row">
-          <h3>{group.name}</h3>
+          <h3>{group.title}</h3>
           {isOwner && <span className="group-owner-badge">Creator</span>}
         </div>
         <p className="group-card-description">{group.description}</p>
@@ -76,9 +86,9 @@ export default function CardGroup({
           <span className="group-member-avatars" aria-hidden="true">
             <span>✦</span><span>●</span><span>◆</span>
           </span>
-          <span>{group.memberCount.toLocaleString()} members</span>
+          <span>{group.memberCount} members</span>
           <span className="group-meta-dot" aria-hidden="true">·</span>
-          <span>by {group.creator}</span>
+          <span>by {group.admin_name}</span>
         </div>
 
         <div className="group-card-footer">
@@ -99,11 +109,11 @@ export default function CardGroup({
               Request to join <span aria-hidden="true">→</span>
             </button>
           )}
-          {group.requests.length > 0 && (
+          {/* {group.requests.length > 0 && (
             <span className="group-pending-count">
               {group.requests.length} request{group.requests.length === 1 ? "" : "s"}
             </span>
-          )}
+          )} */}
         </div>
 
         {isOwner && (
@@ -123,12 +133,12 @@ export default function CardGroup({
                   Invite
                 </button>
               </div>
-              {inviteMessage && <p className="group-inline-message" role="status">{inviteMessage}</p>}
+              {/* {inviteMessage && <p className="group-inline-message" role="status">{inviteMessage}</p>}
               {group.invitedUsers.length > 0 && (
                 <p className="group-invited-list">Invited: {group.invitedUsers.map((user) => `@${user}`).join(", ")}</p>
-              )}
+              )} */}
             </form>
-            {group.requests.length > 0 && (
+            {/* {group.requests.length > 0 && (
               <section className="group-requests" aria-label="Membership requests">
                 <h4>Membership requests <span>{group.requests.length}</span></h4>
                 <ul>
@@ -142,7 +152,7 @@ export default function CardGroup({
                   ))}
                 </ul>
               </section>
-            )}
+            )} */}
           </div>
         )}
       </div>

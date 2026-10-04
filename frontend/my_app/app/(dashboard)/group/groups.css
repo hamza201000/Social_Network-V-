@@ -135,6 +135,7 @@
 }
 
 .group-create-form {
+  margin: 17px  0px;
   display: grid;
   gap: 15px;
 }

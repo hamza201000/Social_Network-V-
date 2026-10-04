@@ -5,10 +5,9 @@ export type GroupRequest = {
 
 export type Group = {
   id: string;
-  name: string;
+  title: string;
   description: string;
-  category: string;
-  creator: string;
+  admin_name: string;
   memberCount: number;
   color: string;
   requests: GroupRequest[];

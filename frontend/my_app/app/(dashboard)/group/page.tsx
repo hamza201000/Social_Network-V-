@@ -1,19 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CardGroup from "@/components/group/CardGroup";
 import CreateGroup, { type NewGroupDetails } from "@/components/group/createGroup";
 import SearchGroup from "@/components/group/searchGroup";
 import type { Group } from "@/types/groupData";
 import "./groups.css";
 
+
 const initialGroups: Group[] = [
   {
     id: "weekend-trail-club",
-    name: "Weekend Trail Club",
+    title: "Weekend Trail Club",
     description: "Fresh air, good company, and a new trail every weekend. All paces and experience levels are welcome.",
-    category: "Outdoors",
-    creator: "Maya Chen",
+    admin_name: "Maya Chen",
     memberCount: 1240,
     color: "#b7d9bf",
     requests: [],
@@ -21,10 +21,9 @@ const initialGroups: Group[] = [
   },
   {
     id: "little-book-nook",
-    name: "The Little Book Nook",
+    title: "The Little Book Nook",
     description: "A cozy corner of the internet for our monthly reads, thoughtful recommendations, and friendly chats.",
-    category: "Books",
-    creator: "Jordan Lee",
+    admin_name: "Jordan Lee",
     memberCount: 864,
     color: "#e5c6a8",
     requests: [],
@@ -32,10 +31,9 @@ const initialGroups: Group[] = [
   },
   {
     id: "makers-table",
-    name: "The Makers’ Table",
+    title: "The Makers’ Table",
     description: "Share what you’re making, swap ideas, and find inspiration from creative people around the world.",
-    category: "Arts & culture",
-    creator: "Sam Rivera",
+    admin_name: "Sam Rivera",
     memberCount: 532,
     color: "#d6c4e7",
     requests: [],
@@ -54,17 +52,32 @@ export default function GroupPage() {
     const search = query.trim().toLocaleLowerCase();
     if (!search) return groups;
     return groups.filter((group) =>
-      `${group.name} ${group.description} ${group.category} ${group.creator}`
+      `${group.title} ${group.description}  ${group.admin_name}`
         .toLocaleLowerCase()
         .includes(search),
     );
   }, [groups, query]);
-
+  useEffect(() => {
+    const getGroups = async () => {
+      const response = await fetch(`http://localhost:8080/api/groups`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        console.error("Failed to fetch group data");
+        return;
+      }
+      const data: Group[] = await response.json();
+      console.log("Fetched groups:", data);
+      setGroups(data);
+  };
+  getGroups();
+  },[])
   function handleCreateGroup(details: NewGroupDetails) {
     const newGroup: Group = {
       ...details,
       id: `group-${Date.now()}`,
-      creator: "You",
+      admin_name: "You",
       memberCount: 1,
       color: "#c3dfd2",
       requests: [],
@@ -72,7 +85,7 @@ export default function GroupPage() {
     };
     setGroups((current) => [newGroup, ...current]);
     setMemberGroupIds((current) => [...current, newGroup.id]);
-    setNotice(`“${newGroup.name}” is ready. Invite people to get the conversation started.`);
+    setNotice(`“${newGroup.title}” is ready. Invite people to get the conversation started.`);
   }
 
   function handleRequestToJoin(groupId: string) {
@@ -115,17 +128,6 @@ export default function GroupPage() {
 
   return (
     <main className="groups-page">
-      <header className="groups-hero">
-        <div className="groups-hero-copy">
-          <p className="group-eyebrow">Find your people</p>
-          <h1>Groups make good things better.</h1>
-          <p>Discover a community, share what you love, and make something together.</p>
-        </div>
-        <div className="groups-hero-art" aria-hidden="true">
-          <span>✳</span><span>✦</span><span>●</span><span>✺</span>
-        </div>
-      </header>
-
       <div className="groups-layout">
         <aside className="groups-sidebar">
           <CreateGroup onCreateGroup={handleCreateGroup} />

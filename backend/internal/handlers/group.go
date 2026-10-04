@@ -1,18 +1,94 @@
 package handler
 
-import "net/http"
+import (
+	"backend/internal/models"
+	"encoding/json"
+	"net/http"
+	"strconv"
+)
 
 func (userHandler UserHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
+	var newGroup models.NewGroupDetails
 
+	err := json.NewDecoder(r.Body).Decode(&newGroup)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	user_id := r.Context().Value("user_id").(int64)
+	groupID, err := userHandler.UserRepo.CreateGroup(user_id, newGroup)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "Failed to create group")
+		return
+	}
+	response := models.Res{
+		Message: "Group created successfully",
+		Data:    models.Group{Id: (groupID)},
+	}
+	SendJSON(w, http.StatusOK, response)
 }
 
 func (userHandler UserHandler) InviteUsrGp(w http.ResponseWriter, r *http.Request) {
-
+	value := r.PathValue("group_id")
+	group_id, err := strconv.Atoi(value)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "wrong group data")
+		return
+	}
+	value = r.URL.Query().Get("user_id")
+	user_id, err := strconv.Atoi(value)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "wrong user data")
+		return
+	}
+	err = userHandler.UserRepo.JoinUsrGroup(int64(user_id), int64(group_id))
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "Failed to retrieve groups")
+		return
+	}
+	res := models.Res{
+		Message: "request to join group sent successfully",
+	}
+	SendJSON(w, http.StatusOK, res)
 }
 
+func (userHandler UserHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
+	user_id := r.Context().Value("user_id").(int64)
+	groups, err := userHandler.UserRepo.GetGroups(user_id)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "Failed to retrieve groups")
+		return
+	}
+	SendJSON(w, http.StatusOK, groups)
+}
 func (userHandler UserHandler) JoinUsrGroup(w http.ResponseWriter, r *http.Request) {
-
+	value := r.PathValue("group_id")
+	group_id, err := strconv.Atoi(value)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "wrong group id")
+		return
+	}
+	user_id := r.Context().Value("user_id").(int64)
+	err = userHandler.UserRepo.JoinUsrGroup(user_id, int64(group_id))
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "Failed to retrieve groups")
+		return
+	}
+	res := models.Res{
+		Message: "request to join group sent successfully",
+	}
+	SendJSON(w, http.StatusOK, res)
 }
 func (userHandler UserHandler) SearchGroup(w http.ResponseWriter, r *http.Request) {
-
+	search := r.URL.Query().Get("q")
+	if search=="" {
+		SendError(w, http.StatusBadRequest, "wrong data")
+		return
+	}
+	group,err:=userHandler.UserRepo.SearchGroup(search)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "Failed to retrieve groups")
+		return
+	}
+	SendJSON(w, http.StatusOK, group)
 }

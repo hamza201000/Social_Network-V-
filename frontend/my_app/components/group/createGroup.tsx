@@ -3,9 +3,9 @@
 import { useState } from "react";
 
 export type NewGroupDetails = {
-  name: string;
+  title: string;
   description: string;
-  category: string;
+  id?: string;
 };
 
 type CreateGroupProps = {
@@ -13,59 +13,61 @@ type CreateGroupProps = {
 };
 
 export default function CreateGroup({ onCreateGroup }: CreateGroupProps) {
-  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Community");
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onCreateGroup({ name: name.trim(), description: description.trim(), category });
-    setName("");
-    setDescription("");
-    setCategory("Community");
+    try {
+      const groupDetails: NewGroupDetails = {
+        title: title.trim(),
+        description: description.trim(),
+      };
+      const response = await fetch("http://localhost:8080/api/groups", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(groupDetails),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create group");
+      }
+      const createdGroup = await response.json();
+      groupDetails.id = createdGroup.id;
+      onCreateGroup(groupDetails);
+      setTitle("");
+      setDescription("");
+    } catch (err) {
+      console.error("Error creating group:", err);
+    }
+
   }
 
   return (
     <section className="group-create-panel" aria-labelledby="create-group-title">
       <div className="group-section-heading">
-        <span className="group-heading-icon" aria-hidden="true">+</span>
         <div>
-          <p className="group-eyebrow">Make it yours</p>
           <h2 id="create-group-title">Create a group</h2>
+          <p className="group-eyebrow"></p>
         </div>
       </div>
-      <p className="group-panel-description">
-        Start a space for people who love the same things you do.
-      </p>
+
 
       <form className="group-create-form" onSubmit={handleSubmit}>
         <label className="group-field" htmlFor="group-name">
           Group name
           <input
             id="group-name"
-            name="name"
+            name="title"
             autoComplete="off"
             maxLength={60}
             placeholder="e.g. Weekend hikers"
             required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
           />
-        </label>
-        <label className="group-field" htmlFor="group-category">
-          Category
-          <select
-            id="group-category"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-          >
-            <option>Community</option>
-            <option>Arts &amp; culture</option>
-            <option>Books</option>
-            <option>Food</option>
-            <option>Outdoors</option>
-            <option>Technology</option>
-          </select>
         </label>
         <label className="group-field group-description-field" htmlFor="group-description">
           Description

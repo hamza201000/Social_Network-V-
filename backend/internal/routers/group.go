@@ -10,8 +10,9 @@ func GroupRouter(mux *http.ServeMux, userHandler *handler.UserHandler) {
 
 	//group
 
-	mux.HandleFunc("POST /api/group", middleware.Middleware(userHandler.UserRepo, userHandler.CreateGroup))
-	mux.HandleFunc("GET /api/group/{group_id}/invite", middleware.Middleware(userHandler.UserRepo, userHandler.InviteUsrGp))
-	mux.HandleFunc("GET /api/group/{group_id}/join", middleware.Middleware(userHandler.UserRepo, userHandler.JoinUsrGroup))
-	mux.HandleFunc("GET /api/group/search", middleware.Middleware(userHandler.UserRepo, userHandler.SearchGroup))
+	mux.HandleFunc("POST /api/groups", middleware.Middleware(userHandler.UserRepo, userHandler.CreateGroup))
+	mux.HandleFunc("GET /api/groups", middleware.Middleware(userHandler.UserRepo, userHandler.GetGroups))
+	mux.HandleFunc("GET /api/groups/{group_id}/invite", middleware.Middleware(userHandler.UserRepo, userHandler.InviteUsrGp))
+	mux.HandleFunc("GET /api/groups/{group_id}/join", middleware.Middleware(userHandler.UserRepo, userHandler.JoinUsrGroup))
+	mux.HandleFunc("GET /api/groups/search", middleware.Middleware(userHandler.UserRepo, userHandler.SearchGroup))
 }
