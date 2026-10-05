@@ -2,6 +2,7 @@ package handler
 
 import (
 	"backend/internal/models"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -81,14 +82,32 @@ func (userHandler UserHandler) JoinUsrGroup(w http.ResponseWriter, r *http.Reque
 }
 func (userHandler UserHandler) SearchGroup(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("q")
-	if search=="" {
+	if search == "" {
 		SendError(w, http.StatusBadRequest, "wrong data")
 		return
 	}
-	group,err:=userHandler.UserRepo.SearchGroup(search)
+	group, err := userHandler.UserRepo.SearchGroup(search)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "Failed to retrieve groups")
 		return
 	}
 	SendJSON(w, http.StatusOK, group)
+}
+func (userHandler UserHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
+	value := r.PathValue("group_id")
+	group_id, err := strconv.Atoi(value)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "wrong data group")
+		return
+	}
+	groups, err := userHandler.UserRepo.GetGroup(int64(group_id))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			SendError(w, http.StatusNotFound, "No group fund")
+			return
+		}
+		SendError(w, http.StatusInternalServerError, "Failed to retrieve group")
+		return
+	}
+	SendJSON(w, http.StatusOK, groups)
 }

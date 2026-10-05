@@ -43,7 +43,6 @@ export default function CardGroup({
   group,
   isMember,
   isRequested,
-  
   onAcceptRequest,
   onDeclineRequest,
   onInvite,

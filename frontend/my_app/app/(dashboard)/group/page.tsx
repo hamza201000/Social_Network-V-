@@ -41,22 +41,22 @@ const initialGroups: Group[] = [
   },
 ];
 
-export default function GroupPage() {
+export default function GroupsPage() {
   const [groups, setGroups] = useState(initialGroups);
-  const [query, setQuery] = useState("");
+  
   const [memberGroupIds, setMemberGroupIds] = useState<string[]>([]);
   const [requestedGroupIds, setRequestedGroupIds] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
 
-  const visibleGroups = useMemo(() => {
-    const search = query.trim().toLocaleLowerCase();
-    if (!search) return groups;
-    return groups.filter((group) =>
-      `${group.title} ${group.description}  ${group.admin_name}`
-        .toLocaleLowerCase()
-        .includes(search),
-    );
-  }, [groups, query]);
+  // const visibleGroups = useMemo(() => {
+  //   const search = query.trim().toLocaleLowerCase();
+  //   if (!search) return groups;
+  //   return groups.filter((group) =>
+  //     `${group.title} ${group.description}  ${group.admin_name}`
+  //       .toLocaleLowerCase()
+  //       .includes(search),
+  //   );
+  // }, [groups, query]);
   useEffect(() => {
     const getGroups = async () => {
       const response = await fetch(`http://localhost:8080/api/groups`, {
@@ -140,14 +140,14 @@ export default function GroupPage() {
               <h2 id="browse-groups-title">Browse groups</h2>
               <p>There’s a place for every interest.</p>
             </div>
-            <span className="groups-results-count">{visibleGroups.length} {visibleGroups.length === 1 ? "group" : "groups"}</span>
+            {/* <span className="groups-results-count">{visibleGroups.length} {visibleGroups.length === 1 ? "group" : "groups"}</span> */}
           </div>
-          <SearchGroup query={query} onQueryChange={setQuery} />
+          <SearchGroup />
           {notice && <p className="groups-notice" role="status">{notice}</p>}
 
-          {visibleGroups.length > 0 ? (
+          {groups.length > 0 ? (
             <div className="groups-grid">
-              {visibleGroups.map((group) => (
+              {groups.map((group) => (
                 <CardGroup
                   key={group.id}
                   group={group}
