@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import "./profile.css"
 import Post from "../post/post";
-import { PostData } from "@/types/postData";
 import { UserData } from "@/types/userData";
 import Follow from "./follow";
+import Connections from "./activeConnections";
 
 
 export type ProfileConnection = {
@@ -21,6 +21,8 @@ export type ProfileData = {
     avatarUrl?: string;
     nickname?: string;
     aboutMe?: string;
+    followers_count?:number
+    following_count?:number
 };
 
 // type ProfileProps = {
@@ -87,11 +89,11 @@ export default  function Profile({ username, myProfile }: { username: string, my
 
                 <div className="profile-connections" aria-label="Connections">
                     <button type="button" className="profile-connection-button" onClick={() => setOpenList("followers")}>
-                        <strong>{followers.length}</strong>
+                        <strong>{profile?.followers_count}</strong>
                         <span>Followers</span>
                     </button>
                     <button type="button" className="profile-connection-button" onClick={() => setOpenList("following")}>
-                        <strong>{following.length}</strong>
+                        <strong>{profile?.following_count}</strong>
                         <span>Following</span>
                     </button>
                 </div>
@@ -150,21 +152,7 @@ export default  function Profile({ username, myProfile }: { username: string, my
                             </button>
                         </header>
                         <ul className="connections-list">
-                            {activeConnections.length ? activeConnections.map((connection) => (
-                                <li key={connection.id} className="connection-item">
-                                    <div className="connection-avatar" aria-hidden="true">
-                                        {connection.avatarUrl ? (
-
-                                            <img src={connection.avatarUrl} alt="" />
-                                        ) : (
-                                            <span>{connection.username.slice(0, 1).toUpperCase()}</span>
-                                        )}
-                                    </div>
-                                    <span className="connection-username">@{connection.username.replace(/^@/, "")}</span>
-                                </li>
-                            )) : (
-                                <li className="connections-empty">No {openList} to show yet.</li>
-                            )}
+                            <Connections user_id={profile?.user_id} openList={openList} />
                         </ul>
                     </section>
                 </div>

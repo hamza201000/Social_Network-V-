@@ -138,8 +138,18 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 	var user models.User
 
 	query := `
-		SELECT id, first_name, last_name, username, email, avatar_url, date_of_birth, about_me, created_at
-		FROM users
+		SELECT u.id, u.first_name, u.last_name, u.username, u.email, u.avatar_url, u.date_of_birth, u.about_me, u.created_at,
+		(
+			SELECT COUNT(*)
+			FROM followers f
+			WHERE f.following_target_id = u.id
+		) AS followers_count,
+		 (
+			SELECT COUNT(*)
+			FROM followers f
+			WHERE f.follower_id = u.id
+		) AS following_count
+		FROM users u
 		WHERE id = $1
 	`
 	err := repo.db.QueryRow(
@@ -155,6 +165,8 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 		&user.DateOfBirth,
 		&user.AboutMe,
 		&user.CreatedAt,
+		&user.Followers_count,
+		&user.Following_count,
 	)
 
 	if err != nil {
@@ -193,4 +205,51 @@ func (repo *UserRepository) FollowUser(followerID int64, followingTargetID int64
 	}
 
 	return nil
+}
+
+func (repo *UserRepository) Followers(follower_id int64) ([]models.ProfileConnection,error) {
+	var followers []models.ProfileConnection
+	query := `
+		SELECT f.follower_id,u.username,u.avatar_url
+		FROM followers f
+		JOIN users u ON f.follower_id=u.id
+		WHERE f.following_target_id=$1
+	`
+
+	rows,err := repo.db.Query(query, follower_id)
+	if err != nil {
+		return nil,err
+	}
+	for rows.Next(){
+		var follower models.ProfileConnection
+		err:=rows.Scan(&follower.User_id,&follower.Username,&follower.AvatarUrl)
+		if (err!=nil){
+			return  nil,err
+		}
+		followers=append(followers, follower)
+	}
+	return followers,nil
+}
+
+func (repo *UserRepository) Following(follower_id int64) ([]models.ProfileConnection,error) {
+	var followers []models.ProfileConnection
+	query := `
+		SELECT f.following_target_id,u.username,u.avatar_url
+		FROM followers f
+		JOIN users u ON f.following_target_id=u.id
+		WHERE f.follower_id=$1
+	`
+	rows,err := repo.db.Query(query, follower_id)
+	if err != nil {
+		return nil,err
+	}
+	for rows.Next(){
+		var follower models.ProfileConnection
+		err:=rows.Scan(&follower.User_id,&follower.Username,&follower.AvatarUrl)
+		if (err!=nil){
+			return  nil,err
+		}
+		followers=append(followers, follower)
+	}
+	return followers,nil
 }

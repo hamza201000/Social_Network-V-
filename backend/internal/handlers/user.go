@@ -211,7 +211,7 @@ func (userHandler UserHandler) FollowUser(w http.ResponseWriter, r *http.Request
 	following_target_id:=r.URL.Query().Get("user_id")
 	user_target,err:=strconv.Atoi(following_target_id)
 	if err!=nil{
-		SendError(w, http.StatusInternalServerError, "internal server")
+		SendError(w, http.StatusBadRequest, "wrong data send")
 		return
 	}
 	user_id := r.Context().Value("user_id").(int64)
@@ -235,4 +235,47 @@ func (userHandler UserHandler) GetMyProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	SendJSON(w, http.StatusOK, user)
+}
+
+func (userHandler UserHandler) GetFollowers(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("in")
+	Value:=r.PathValue("user_id")
+	user_target,err:=strconv.Atoi(Value)
+	if err!=nil{
+		fmt.Println("error strcnv",err)
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	// user_id := r.Context().Value("user_id").(int64)
+	followers,err := userHandler.UserRepo.Followers(int64(user_target))
+	if err != nil {
+		fmt.Println("error data base GetFollowers ",err)
+		if (err==sql.ErrNoRows){
+			SendError(w, http.StatusNotFound, "no connection found")
+		}
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	SendJSON(w, http.StatusOK, followers)
+}
+func (userHandler UserHandler) GetFollowing(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("in")
+	Value:=r.PathValue("user_id")
+	user_target,err:=strconv.Atoi(Value)
+	if err!=nil{
+		fmt.Println("error strcnv",err)
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	// user_id := r.Context().Value("user_id").(int64)
+	connections,err := userHandler.UserRepo.Following(int64(user_target))
+	if err != nil {
+		fmt.Println("error data base getfoolowin ",err)
+		if (err==sql.ErrNoRows){
+			SendError(w, http.StatusNotFound, "no connection found")
+		}
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	SendJSON(w, http.StatusOK, connections)
 }

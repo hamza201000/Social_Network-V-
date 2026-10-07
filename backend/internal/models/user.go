@@ -11,6 +11,8 @@ type User struct {
 	DateOfBirth    string `json:"date_of_birth"`
 	AboutMe        string `json:"about_me"`
 	FollowedByMe bool   `json:"followed_by_me"`
+	Followers_count int `json:"followers_count"` 
+	Following_count int `json:"following_count"`
 	CreatedAt    string `json:"created_at"`
 }
 
@@ -28,4 +30,10 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type ProfileConnection struct{
+	User_id int64 `json:"user_id"`;
+  Username string `json:"username"`;
+    AvatarUrl string `json:"avatarUrl"`;
 }
