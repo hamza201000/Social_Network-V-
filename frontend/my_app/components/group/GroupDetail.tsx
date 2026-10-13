@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Group } from "@/types/groupData";
 import "./group-detail.css";
+import CreatePostGp from "../post/createPostGp";
 
 type GroupDetailProps = {
   groupId: string;
@@ -130,7 +131,10 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
                   </span>
                 ))}
               </span>
-              <span><strong>{group.memberCount.toLocaleString()}</strong> members</span>
+              <span>
+                
+                  {group.memberCount.toLocaleString()}
+                   members</span>
               <span className="group-meta-divider" aria-hidden="true" />
               <span>Started by {group.admin_name}</span>
             </div>
@@ -181,11 +185,14 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
           tabIndex={0}
         >
           {activeTab === "posts" ? (
+            <>
+            <CreatePostGp group_id={groupId}  />
             <div className="group-posts-empty">
               <span className="group-empty-symbol" aria-hidden="true">✳</span>
               <h3>The trail starts here</h3>
               <p>Group conversations and updates will show up here.</p>
             </div>
+            </>
           ) : (
             <div className="group-events-list">
               {sampleEvents.map((event) => (

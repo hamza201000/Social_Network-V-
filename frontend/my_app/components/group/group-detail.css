@@ -275,6 +275,7 @@
 }
 
 .group-posts-empty {
+  margin: 7px;
   display: grid;
   min-height: 250px;
   justify-items: center;

@@ -8,41 +8,11 @@ import type { Group } from "@/types/groupData";
 import "./groups.css";
 
 
-const initialGroups: Group[] = [
-  {
-    id: "weekend-trail-club",
-    title: "Weekend Trail Club",
-    description: "Fresh air, good company, and a new trail every weekend. All paces and experience levels are welcome.",
-    admin_name: "Maya Chen",
-    memberCount: 1240,
-    color: "#b7d9bf",
-    requests: [],
-    invitedUsers: [],
-  },
-  {
-    id: "little-book-nook",
-    title: "The Little Book Nook",
-    description: "A cozy corner of the internet for our monthly reads, thoughtful recommendations, and friendly chats.",
-    admin_name: "Jordan Lee",
-    memberCount: 864,
-    color: "#e5c6a8",
-    requests: [],
-    invitedUsers: [],
-  },
-  {
-    id: "makers-table",
-    title: "The Makers’ Table",
-    description: "Share what you’re making, swap ideas, and find inspiration from creative people around the world.",
-    admin_name: "Sam Rivera",
-    memberCount: 532,
-    color: "#d6c4e7",
-    requests: [],
-    invitedUsers: [],
-  },
-];
+
+
 
 export default function GroupsPage() {
-  const [groups, setGroups] = useState(initialGroups);
+  const [groups, setGroups] = useState<Group[]>([]);
   
   const [memberGroupIds, setMemberGroupIds] = useState<string[]>([]);
   const [requestedGroupIds, setRequestedGroupIds] = useState<string[]>([]);
@@ -57,36 +27,36 @@ export default function GroupsPage() {
   //       .includes(search),
   //   );
   // }, [groups, query]);
+  const getGroups = async () => {
+    const response = await fetch(`http://localhost:8080/api/groups`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      console.error("Failed to fetch group data");
+      return;
+    }
+    const data: Group[] = await response.json();
+    console.log("Fetched groups:", data);
+    setGroups(data);
+};
   useEffect(() => {
-    const getGroups = async () => {
-      const response = await fetch(`http://localhost:8080/api/groups`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!response.ok) {
-        console.error("Failed to fetch group data");
-        return;
-      }
-      const data: Group[] = await response.json();
-      console.log("Fetched groups:", data);
-      setGroups(data);
-  };
   getGroups();
   },[])
-  function handleCreateGroup(details: NewGroupDetails) {
-    const newGroup: Group = {
-      ...details,
-      id: `group-${Date.now()}`,
-      admin_name: "You",
-      memberCount: 1,
-      color: "#c3dfd2",
-      requests: [],
-      invitedUsers: [],
-    };
-    setGroups((current) => [newGroup, ...current]);
-    setMemberGroupIds((current) => [...current, newGroup.id]);
-    setNotice(`“${newGroup.title}” is ready. Invite people to get the conversation started.`);
-  }
+  // function handleCreateGroup(details: NewGroupDetails) {
+  //   const newGroup: Group = {
+  //     ...details,
+  //     id: `group-${Date.now()}`,
+  //     admin_name: "You",
+  //     memberCount: 1,
+  //     color: "#c3dfd2",
+  //     requests: [],
+  //     invitedUsers: [],
+  //   };
+  //   setGroups((current) => [newGroup, ...current]);
+  //   setMemberGroupIds((current) => [...current, newGroup.id]);
+  //   setNotice(`“${newGroup.title}” is ready. Invite people to get the conversation started.`);
+  // }
 
   function handleRequestToJoin(groupId: string) {
     setRequestedGroupIds((current) => [...current, groupId]);
@@ -130,7 +100,7 @@ export default function GroupsPage() {
     <main className="groups-page">
       <div className="groups-layout">
         <aside className="groups-sidebar">
-          <CreateGroup onCreateGroup={handleCreateGroup} />
+          <CreateGroup onCreateGroup={getGroups} />
         </aside>
 
         <section className="groups-browse" aria-labelledby="browse-groups-title">
@@ -145,7 +115,7 @@ export default function GroupsPage() {
           <SearchGroup />
           {notice && <p className="groups-notice" role="status">{notice}</p>}
 
-          {groups.length > 0 ? (
+          {groups?.length > 0 ? (
             <div className="groups-grid">
               {groups.map((group) => (
                 <CardGroup
@@ -164,7 +134,7 @@ export default function GroupsPage() {
             <div className="groups-empty-state">
               <span aria-hidden="true">⌕</span>
               <h3>No groups found</h3>
-              <p>Try a different search, or create a group of your own.</p>
+              <p> create your group</p>
             </div>
           )}
         </section>

@@ -119,3 +119,23 @@ func (repo *UserRepository) GetGroup(group_id int64) (models.Group, error) {
 	}
 	return group, nil
 }
+
+
+func (repo *UserRepository) CreatePostGp(group_id,User_id int64,post models.PostRequest) (int64, error) {
+	query := `
+		INSERT INTO posts (user_id,content,image_path,group_id)
+		VALUES ($1,$2,$3,$4)
+		`
+	// 	WHERE (g.admin_id = $1 OR g.id = (SELECT group_id FROM members_gp WHERE user_id = $1 ) OR )
+	result,err := repo.db.Exec(query,User_id,post.Content,post.Image,group_id)
+	if err != nil {
+		fmt.Println("Error retrieving groups from database:", err)
+		return 0, err
+	}
+	postId,err:=result.LastInsertId()
+	if err!=nil{
+		fmt.Println("Error retrieving groups from database:", err)
+		return 0, err
+	}
+	return postId, nil
+}

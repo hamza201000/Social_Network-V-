@@ -9,7 +9,7 @@ export type NewGroupDetails = {
 };
 
 type CreateGroupProps = {
-  onCreateGroup: (group: NewGroupDetails) => void;
+  onCreateGroup: () => void;
 };
 
 export default function CreateGroup({ onCreateGroup }: CreateGroupProps) {
@@ -36,7 +36,7 @@ export default function CreateGroup({ onCreateGroup }: CreateGroupProps) {
       }
       const createdGroup = await response.json();
       groupDetails.id = createdGroup.id;
-      onCreateGroup(groupDetails);
+      onCreateGroup();
       setTitle("");
       setDescription("");
     } catch (err) {

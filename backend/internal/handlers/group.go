@@ -2,8 +2,10 @@ package handler
 
 import (
 	"backend/internal/models"
+	"backend/internal/services"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -110,4 +112,31 @@ func (userHandler UserHandler) GetGroup(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	SendJSON(w, http.StatusOK, groups)
+}
+
+func (userHandler *UserHandler) CreatePostGp(w http.ResponseWriter, r *http.Request) {
+	// userID, err := userHandler.requiredUserID(r)
+	user_id := r.Context().Value("user_id").(int64)
+	post, err := parsePostRequest(w, r)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	value := r.PathValue("group_id")
+	group_id, err := strconv.Atoi(value)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "wrong data group")
+		return
+	}
+	if err := services.ValidatePostRequest(post); err != nil {
+		SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	postID, err := userHandler.UserRepo.CreatePostGp( int64(group_id),user_id,post)
+	if err != nil {
+		fmt.Println("error createpost:::", err)
+		SendError(w, http.StatusInternalServerError, "could not create post")
+		return
+	}
+	SendJSON(w, http.StatusCreated, models.Res{Message: "post created successfully", Data: map[string]int64{"id": postID}})
 }

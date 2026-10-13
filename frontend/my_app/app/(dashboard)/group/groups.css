@@ -192,7 +192,14 @@
   font-size: 0.7rem;
   font-weight: 500;
 }
-
+.primary-button {
+  min-height: 42px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 800;
+}
 .group-primary-button,
 .group-secondary-button {
   display: inline-flex;
