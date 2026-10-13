@@ -139,3 +139,27 @@ func (repo *UserRepository) CreatePostGp(group_id,User_id int64,post models.Post
 	}
 	return postId, nil
 }
+
+func (repo *UserRepository) GetPostsGp(group_id int64) ([]models.PostData, error) {
+
+	quey:=`SELECT p.id, p.user_id, u.username, p.content,p.group_id, p.created_at
+	FROM posts p JOIN users u ON u.id = p.user_id
+	WHERE p.group_id=$1
+	ORDER BY p.created_at DESC
+	`
+	rows, err := repo.db.Query(quey, group_id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []models.PostData{}
+	for rows.Next() {
+		var post models.PostData
+		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Group_id, &post.Created_at); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+	return posts, rows.Err()
+}

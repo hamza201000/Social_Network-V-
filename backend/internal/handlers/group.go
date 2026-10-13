@@ -140,3 +140,23 @@ func (userHandler *UserHandler) CreatePostGp(w http.ResponseWriter, r *http.Requ
 	}
 	SendJSON(w, http.StatusCreated, models.Res{Message: "post created successfully", Data: map[string]int64{"id": postID}})
 }
+
+func (userHandler *UserHandler) GetPostGp(w http.ResponseWriter, r *http.Request) {
+	// userID, err := userHandler.requiredUserID(r)
+	user_id := r.Context().Value("user_id").(int64)
+	
+	value := r.PathValue("group_id")
+	group_id, err := strconv.Atoi(value)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "wrong data group")
+		return
+	}
+	user_id=user_id //i have to check authorized 
+	posts, err := userHandler.UserRepo.GetPostsGp(int64(group_id))
+	if err != nil {
+		fmt.Println("error getposts:::", err)
+		SendError(w, http.StatusInternalServerError, "could not get posts")
+		return
+	}
+	SendJSON(w, http.StatusOK, posts)
+}

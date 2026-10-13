@@ -9,6 +9,7 @@ type PostData struct {
 	Content    string    `json:"content"`
 	Image      string    `json:"image"`
 	Privacy    string    `json:"privacy"`
+	Group_id   int64      `json:"group_id"`
 	Created_at time.Time `json:"created_at"`
 }
 

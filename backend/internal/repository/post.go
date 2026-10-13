@@ -61,7 +61,7 @@ func (repo *UserRepository) CanViewPost(postID, viewerID int64) (bool, error) {
 }
 
 func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) {
-	rows, err := repo.db.Query(postQuery+` WHERE p.privacy = 'public' OR p.user_id = ? OR
+	rows, err := repo.db.Query(postQuery+` WHERE ((p.privacy = 'public' OR p.user_id = ?) AND p.group_id = 0) OR
 		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id)) OR
 		(p.privacy = 'private' AND EXISTS (SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?))
 		ORDER BY p.created_at DESC`, viewerID, viewerID, viewerID)

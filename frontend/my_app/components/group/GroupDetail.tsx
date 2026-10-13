@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Group } from "@/types/groupData";
 import "./group-detail.css";
 import CreatePostGp from "../post/createPostGp";
+import Post from "../post/post";
 
 type GroupDetailProps = {
   groupId: string;
@@ -187,11 +188,9 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
           {activeTab === "posts" ? (
             <>
             <CreatePostGp group_id={groupId}  />
-            <div className="group-posts-empty">
-              <span className="group-empty-symbol" aria-hidden="true">✳</span>
-              <h3>The trail starts here</h3>
-              <p>Group conversations and updates will show up here.</p>
-            </div>
+            {/* <div className="group-posts-empty"> */}
+              <Post query="" myposts group_id={groupId}/>
+            {/* </div> */}
             </>
           ) : (
             <div className="group-events-list">
