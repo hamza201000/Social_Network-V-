@@ -18,4 +18,7 @@ func GroupRouter(mux *http.ServeMux, userHandler *handler.UserHandler) {
 	mux.HandleFunc("GET /api/groups/search", middleware.Middleware(userHandler.UserRepo, userHandler.SearchGroup))
 	mux.HandleFunc("POST /api/groups/{group_id}/posts", middleware.Middleware(userHandler.UserRepo, userHandler.CreatePostGp))
 	mux.HandleFunc("GET /api/groups/{group_id}/posts", middleware.Middleware(userHandler.UserRepo, userHandler.GetPostGp))
+	mux.HandleFunc("POST /api/groups/{group_id}/events", middleware.Middleware(userHandler.UserRepo, userHandler.CreateEvent))
+	mux.HandleFunc("GET /api/groups/{group_id}/events", middleware.Middleware(userHandler.UserRepo, userHandler.GetGroupEvents))
+	mux.HandleFunc("POST /api/groups/{group_id}/events/{event_id}/response", middleware.Middleware(userHandler.UserRepo, userHandler.VoteEvent))
 }

@@ -313,6 +313,85 @@
   font-size: 0.87rem;
 }
 
+.create-event-form {
+  display: grid;
+  gap: 13px;
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #e1e8e1;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.create-event-form h3 {
+  margin: 0;
+  color: #2c4132;
+  font-size: 1rem;
+}
+
+.create-event-form label {
+  display: grid;
+  gap: 6px;
+  color: #53665a;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.create-event-form input,
+.create-event-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d8e1d8;
+  border-radius: 7px;
+  color: #2c4132;
+  font: inherit;
+}
+
+.create-event-form input:focus,
+.create-event-form textarea:focus {
+  outline: 2px solid #9bb99d;
+  outline-offset: 1px;
+}
+
+.create-event-form button {
+  justify-self: start;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 7px;
+  background: #426849;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.create-event-form button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.event-form-error,
+.group-events-error {
+  color: #a43d35;
+}
+
+.event-form-success {
+  color: #426849;
+}
+
+.event-form-error,
+.event-form-success,
+.group-events-status,
+.group-events-error {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.group-events-status,
+.group-events-error {
+  margin-bottom: 14px;
+}
+
 .group-events-list {
   display: grid;
   gap: 12px;
@@ -402,6 +481,40 @@
 .group-event-attendees span {
   margin-right: 4px;
   color: #6d9271;
+}
+
+.group-event-vote {
+  display: flex;
+  gap: 8px;
+  grid-column: 2 / -1;
+}
+
+.group-event-vote button {
+  padding: 7px 12px;
+  border: 1px solid #cbdaca;
+  border-radius: 7px;
+  background: #f6faf6;
+  color: #426849;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.group-event-vote button:hover:not(:disabled) {
+  background: #e5efe4;
+}
+
+.group-event-vote button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.event-vote-error {
+  grid-column: 2 / -1;
+  margin: 0;
+  color: #a43d35;
+  font-size: 0.8rem;
 }
 
 .group-modal-backdrop {

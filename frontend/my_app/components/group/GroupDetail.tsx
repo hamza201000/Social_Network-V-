@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Group } from "@/types/groupData";
+import type { GroupEvent } from "@/types/eventData";
 import "./group-detail.css";
 import CreatePostGp from "../post/createPostGp";
 import Post from "../post/post";
+import CreateEvent from "@/components/events/createEvent";
+import GetEvents from "@/components/events/GetEvents";
 
 type GroupDetailProps = {
   groupId: string;
@@ -40,27 +43,6 @@ const sampleMembers: Member[] = [
   { name: "Noah Patel", username: "noahfindsviews", role: "Member", initials: "NP", color: "#eee4bd" },
 ];
 
-const sampleEvents = [
-  {
-    day: "18",
-    month: "MAY",
-    title: "Coastal loop and coffee",
-    details: "Sunday, 8:30 AM · 6.2 mi · Easy pace",
-    location: "Lands End Trailhead, San Francisco",
-    attendees: 18,
-    accent: "sage",
-  },
-  {
-    day: "24",
-    month: "MAY",
-    title: "Redwood morning hike",
-    details: "Saturday, 9:00 AM · 4.5 mi · Moderate",
-    location: "Muir Woods, Mill Valley",
-    attendees: 12,
-    accent: "clay",
-  },
-];
-
 function isGroup(value: unknown): value is Group {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<Group>;
@@ -71,6 +53,11 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
   const [group, setGroup] = useState(sampleGroup);
   const [activeTab, setActiveTab] = useState<GroupTab>("posts");
   const [membersOpen, setMembersOpen] = useState(false);
+  const [eventsCount, setEventsCount] = useState(0);
+  const [eventsVersion, setEventsVersion] = useState(0);
+  const handleEventsLoaded = useCallback((loadedEvents: GroupEvent[]) => {
+    setEventsCount(loadedEvents.length);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,7 +160,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
               aria-controls="group-activity-panel"
               onClick={() => setActiveTab("events")}
             >
-              Events <span>{sampleEvents.length}</span>
+              Events <span>{eventsCount}</span>
             </button>
           </div>
         </div>
@@ -193,25 +180,10 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
             {/* </div> */}
             </>
           ) : (
-            <div className="group-events-list">
-              {sampleEvents.map((event) => (
-                <article className="group-event" key={event.title}>
-                  <div className={`group-event-date ${event.accent}`}>
-                    <span>{event.month}</span>
-                    <strong>{event.day}</strong>
-                  </div>
-                  <div className="group-event-copy">
-                    <p className="group-event-type">Upcoming meetup</p>
-                    <h3>{event.title}</h3>
-                    <p>{event.details}</p>
-                    <span className="group-event-location">{event.location}</span>
-                  </div>
-                  <div className="group-event-attendees">
-                    <span aria-hidden="true">◉</span> {event.attendees} going
-                  </div>
-                </article>
-              ))}
-            </div>
+            <>
+              <CreateEvent group_id={groupId} onEventCreated={() => setEventsVersion((version) => version + 1)} />
+              <GetEvents group_id={groupId} refreshKey={eventsVersion} onEventsLoaded={handleEventsLoaded} />
+            </>
           )}
         </div>
       </section>
