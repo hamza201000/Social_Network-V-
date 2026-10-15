@@ -75,34 +75,44 @@ func (repo *UserRepository) GetGroupEvents(userID, groupID int64) ([]models.Even
 }
 
 func (repo *UserRepository) VoteEvent(userID, groupID, eventID int64, response string) error {
-	if response != "Going" && response != "Not going" {
-		return errors.New("response must be Going or Not going")
-	}
-	member, err := repo.isGroupMember(userID, groupID)
-	if err != nil {
-		return err
-	}
-	if !member {
-		return ErrNotGroupMember
-	}
-	result, err := repo.db.Exec(`
-		INSERT INTO event_responses (event_id, user_id, response, updated_at)
-		SELECT e.id, $1, $4, CURRENT_TIMESTAMP
-		FROM events e
-		WHERE e.id = $2 AND e.group_id = $3
-		ON CONFLICT(event_id, user_id) DO UPDATE SET
-			response = excluded.response,
-			updated_at = CURRENT_TIMESTAMP
-	`, userID, eventID, groupID, response)
-	if err != nil {
-		return err
-	}
-	count, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
+    if response != "Going" && response != "Not going" {
+        return errors.New("response must be Going or Not going")
+    }
+
+    member, err := repo.isGroupMember(userID, groupID)
+    if err != nil {
+        return err
+    }
+    if !member {
+        return ErrNotGroupMember
+    }
+
+    result, err := repo.db.Exec(`
+        INSERT INTO event_responses (event_id, user_id, response, updated_at)
+        VALUES (
+            (SELECT id FROM events WHERE id = $1 AND group_id = $2),
+            $3,
+            $4,
+            CURRENT_TIMESTAMP
+        )
+        ON CONFLICT (event_id, user_id)
+        DO UPDATE SET
+            response = EXCLUDED.response,
+            updated_at = CURRENT_TIMESTAMP
+    `, eventID, groupID, userID, response)
+
+    if err != nil {
+        return err
+    }
+
+    count, err := result.RowsAffected()
+    if err != nil {
+        return err
+    }
+
+    if count == 0 {
+        return sql.ErrNoRows
+    }
+
+    return nil
 }

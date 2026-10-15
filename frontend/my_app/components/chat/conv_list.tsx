@@ -1,0 +1,48 @@
+import { useEffect, useState } from "react";
+
+
+
+export default function ConversationList({user_id,selectConversation}:{user_id:string,selectConversation:(id:number)=>void}) {
+    const [Conversations,setConversations]=useState<Conversation[]>([])
+
+    const fetchConversation = async () =>{
+        try{
+            const response = await fetch(`http://localhost:8080/api/chat/{user_id}/conversationList`,{
+                method:"GET",
+                credentials:"include"
+            })
+            if (!response.ok) {
+                throw new Error("Failed to fetch ConversationList");
+            }
+            const data :Conversation[] = await response.json()
+            setConversations(data)
+
+        }catch (err){
+
+        }
+    }
+    useEffect(()=>{
+        fetchConversation()
+
+
+    },[])
+
+    return (
+        <div className="conversation-list">
+            <div className="list-label">RECENT</div>
+            {Conversations.length ? Conversations.map((conversation) => (
+                <button key={conversation.id} type="button" className={`conversation-item${selectedId === conversation.id ? " conversation-active" : ""}`} onClick={() => selectConversation(conversation.id)}>
+                    <Avatar conversation={conversation} />
+                    <span className="conversation-copy">
+                        <span className="conversation-name-row"><strong>{conversation.name}</strong><time>{conversation.time}</time></span>
+                        <span className="conversation-preview-row">
+                            <span className="conversation-type">{conversation.kind === "group" ? "Group" : conversation.preview}</span>
+                            {conversation.unread ? <span className="unread-badge">{conversation.unread}</span> : null}
+                        </span>
+                        {conversation.kind === "group" && <span className="group-preview">{conversation.preview}</span>}
+                    </span>
+                </button>
+            )) : <p className="empty-search">{conversations.length ? "No conversations found." : "No conversations yet."}</p>}
+        </div>
+    )
+}
