@@ -84,7 +84,20 @@ func (repo *MessageRepository) GetLatestMessage(userID, otherUserID int64) (mode
 
 func (repo *MessageRepository) GetChatUsers(userID int64) ([]models.Client, error) {
 	rows, err := repo.db.Query(`
-		WITH latest_messages AS (
+		WITH chat_users AS (
+			SELECT following_target_id AS other_user_id
+			FROM followers
+			WHERE follower_id = $1
+			UNION
+			SELECT follower_id AS other_user_id
+			FROM followers
+			WHERE following_target_id = $1
+			UNION
+			SELECT CASE WHEN sender_id = $1 THEN receiver_id ELSE sender_id END AS other_user_id
+			FROM messages
+			WHERE sender_id = $1 OR receiver_id = $1
+		),
+		latest_messages AS (
 			SELECT
 				CASE WHEN sender_id = $1 THEN receiver_id ELSE sender_id END AS other_user_id,
 				MAX(id) AS message_id
@@ -94,11 +107,12 @@ func (repo *MessageRepository) GetChatUsers(userID int64) ([]models.Client, erro
 		)
 		SELECT u.id, u.username,
 			m.id, m.sender_id, m.receiver_id, m.message, m.seen, m.created_at, sender.username
-		FROM latest_messages latest
-		JOIN users u ON u.id = latest.other_user_id
-		JOIN messages m ON m.id = latest.message_id
-		JOIN users sender ON sender.id = m.sender_id
-		ORDER BY m.created_at DESC, m.id DESC
+		FROM chat_users chats
+		JOIN users u ON u.id = chats.other_user_id
+		LEFT JOIN latest_messages latest ON latest.other_user_id = chats.other_user_id
+		LEFT JOIN messages m ON m.id = latest.message_id
+		LEFT JOIN users sender ON sender.id = m.sender_id
+		ORDER BY CASE WHEN m.id IS NULL THEN 1 ELSE 0 END, m.created_at DESC, m.id DESC, u.username
 	`, userID)
 	if err != nil {
 		return nil, err
@@ -108,22 +122,35 @@ func (repo *MessageRepository) GetChatUsers(userID int64) ([]models.Client, erro
 	chats := make([]models.Client, 0)
 	for rows.Next() {
 		var chat models.Client
-		var lastMessage models.DataMessage
+		var messageID, senderID, receiverID sql.NullInt64
+		var text, senderName sql.NullString
+		var seen sql.NullBool
+		var createdAt sql.NullTime
 		if err := rows.Scan(
 			&chat.UserID,
 			&chat.Username,
-			&lastMessage.ID,
-			&lastMessage.SenderID,
-			&lastMessage.ReceiverID,
-			&lastMessage.Message,
-			&lastMessage.Seen,
-			&lastMessage.CreatedAt,
-			&lastMessage.UsernameSender,
+			&messageID,
+			&senderID,
+			&receiverID,
+			&text,
+			&seen,
+			&createdAt,
+			&senderName,
 		); err != nil {
 			return nil, err
 		}
-		lastMessage.Type = "message"
-		chat.LastMsg = &lastMessage
+		if messageID.Valid {
+			chat.LastMsg = &models.DataMessage{
+				ID:             messageID.Int64,
+				Type:           "message",
+				SenderID:       senderID.Int64,
+				ReceiverID:     receiverID.Int64,
+				Message:        text.String,
+				Seen:           seen.Bool,
+				CreatedAt:      createdAt.Time,
+				UsernameSender: senderName.String,
+			}
+		}
 		chats = append(chats, chat)
 	}
 	return chats, rows.Err()

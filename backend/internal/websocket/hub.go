@@ -38,7 +38,6 @@ func NewHub() *Hub {
 
 func (hub *Hub) Register(userID int64, connection *gorilla.Conn) *Client {
 	client := &Client{connection: connection}
-
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 	if hub.clients[userID] == nil {

@@ -7,6 +7,8 @@ import (
 	"errors"
 	"testing"
 
+	"backend/internal/models"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -33,7 +35,8 @@ func TestMessageRepository(t *testing.T) {
 			seen BOOLEAN NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
-		INSERT INTO users (id, username) VALUES (1, 'alice'), (2, 'bob');
+		INSERT INTO users (id, username)
+		VALUES (1, 'alice'), (2, 'bob'), (3, 'carol'), (4, 'dave');
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +61,25 @@ func TestMessageRepository(t *testing.T) {
 	if !allowed {
 		t.Fatal("a follow in either direction should allow messaging")
 	}
+	if _, err := db.Exec(`
+		INSERT INTO followers (follower_id, following_target_id)
+		VALUES (1, 3), (4, 1)
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	chats, err := repo.GetChatUsers(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(chats) != 3 {
+		t.Fatalf("expected followers and followed users before any messages, got %+v", chats)
+	}
+	for _, chat := range chats {
+		if chat.LastMsg != nil {
+			t.Errorf("expected no last message for user %d, got %+v", chat.UserID, chat.LastMsg)
+		}
+	}
 
 	saved, err := repo.InsertMessage(1, 2, "hello")
 	if err != nil {
@@ -75,12 +97,22 @@ func TestMessageRepository(t *testing.T) {
 		t.Fatalf("unexpected conversation messages: %+v", conversation)
 	}
 
-	chats, err := repo.GetChatUsers(1)
+	chats, err = repo.GetChatUsers(1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(chats) != 1 || chats[0].UserID != 2 || chats[0].LastMsg.ID != saved.ID {
+	if len(chats) != 3 {
 		t.Fatalf("unexpected chat list: %+v", chats)
+	}
+	var bobChat *models.Client
+	for i := range chats {
+		if chats[i].UserID == 2 {
+			bobChat = &chats[i]
+			break
+		}
+	}
+	if bobChat == nil || bobChat.LastMsg == nil || bobChat.LastMsg.ID != saved.ID {
+		t.Fatalf("expected Bob's chat to include the latest message: %+v", chats)
 	}
 
 	if err := repo.MarkMessageSeen(saved.ID, 1); !errors.Is(err, sql.ErrNoRows) {

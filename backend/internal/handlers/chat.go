@@ -27,6 +27,10 @@ func NewChatHandler(messageRepo *repository.MessageRepository, hub *chatws.Hub) 
 var chatUpgrader = gorilla.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		return origin == "" || origin == "http://localhost:3000"
+	},
 }
 
 func (handler *ChatHandler) GetConversation(w http.ResponseWriter, r *http.Request) {
@@ -51,13 +55,9 @@ func (handler *ChatHandler) GetConversation(w http.ResponseWriter, r *http.Reque
 }
 
 func (handler *ChatHandler) GetChats(w http.ResponseWriter, r *http.Request) {
-	userID, ok := authenticatedUserID(r)
-	if !ok {
-		SendError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
+	user_id := r.Context().Value("user_id").(int64)
 
-	chats, err := handler.MessageRepo.GetChatUsers(userID)
+	chats, err := handler.MessageRepo.GetChatUsers(user_id)
 	if err != nil {
 		log.Printf("get chats: %v", err)
 		SendError(w, http.StatusInternalServerError, "Failed to retrieve chats")
@@ -199,6 +199,7 @@ func (handler *ChatHandler) saveMessage(senderID int64, request models.NewMessag
 }
 
 func authenticatedUserID(r *http.Request) (int64, bool) {
+	
 	userID, ok := r.Context().Value("user_id").(int64)
 	return userID, ok && userID > 0
 }

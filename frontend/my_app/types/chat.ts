@@ -1,21 +1,22 @@
+export interface ChatMessage {
+  id: number;
+  type: string;
+  username_sender: string;
+  sender_id: number;
+  receiver_id: number;
+  message: string;
+  seen: boolean;
+  created_at: string;
+}
 
+export interface ChatUser {
+  user_id: number;
+  username: string;
+  is_online: boolean;
+  last_msg: ChatMessage | null;
+}
 
-type Message = {
-    id: number;
-    text: string;
-    time: string;
-    fromMe: boolean;
-};
-
-type Conversation = {
-    id: string;
-    name: string;
-    kind: "person" | "group";
-    initials: string;
-    avatarTone: string;
-    status: string;
-    preview: string;
-    time: string;
-    unread?: number;
-    messages: Message[];
-};
+export interface NewMessage {
+  receiver_id: number;
+  message: string;
+}

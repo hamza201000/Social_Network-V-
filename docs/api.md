@@ -75,7 +75,7 @@ Returns messages between the logged-in user and the user identified in the path,
 
 `GET /api/chats`
 
-Returns users the logged-in user has exchanged messages with, including the latest message and whether the user currently has an open WebSocket connection.
+Returns users the logged-in user follows, users who follow them, and previous chat partners. This includes people with no messages yet; their `last_msg` is `null`. Each user also includes whether they currently have an open WebSocket connection.
 
 ### Mark a message as seen
 
