@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
 
+function Avatar({ conversation, small = false }: { conversation: Conversation; small?: boolean }) {
+    return (
+        <span className={`chat-avatar tone-${conversation.avatarTone}${small ? " chat-avatar-small" : ""}`} aria-hidden="true">
+            {conversation.initials}
+            {conversation.kind === "person" && conversation.status === "Online now" && <i className="avatar-presence" />}
+        </span>
+    );
+}
 
-
-export default function ConversationList({user_id,selectConversation}:{user_id:string,selectConversation:(id:number)=>void}) {
+export default function ConversationList({user_id}:{user_id:string}) {
     const [Conversations,setConversations]=useState<Conversation[]>([])
+    const [selectedId, setSelectedId] = useState<string | null>(null);
 
+    function selectConversation(id: string) {
+        setSelectedId(id);
+        setConversations((current) => current.map((conversation) => conversation.id === id ? { ...conversation, unread: undefined } : conversation));
+    }
     const fetchConversation = async () =>{
         try{
             const response = await fetch(`http://localhost:8080/api/chat/{user_id}/conversationList`,{
@@ -16,15 +28,12 @@ export default function ConversationList({user_id,selectConversation}:{user_id:s
             }
             const data :Conversation[] = await response.json()
             setConversations(data)
-
         }catch (err){
 
         }
     }
     useEffect(()=>{
         fetchConversation()
-
-
     },[])
 
     return (
@@ -42,7 +51,7 @@ export default function ConversationList({user_id,selectConversation}:{user_id:s
                         {conversation.kind === "group" && <span className="group-preview">{conversation.preview}</span>}
                     </span>
                 </button>
-            )) : <p className="empty-search">{conversations.length ? "No conversations found." : "No conversations yet."}</p>}
+            )) : <p className="empty-search">No conversations</p>}
         </div>
     )
 }

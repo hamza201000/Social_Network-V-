@@ -3,26 +3,9 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import "./chat.css";
+import ConversationList from "@/components/chat/conv_list";
 
-type Message = {
-    id: number;
-    text: string;
-    time: string;
-    fromMe: boolean;
-};
 
-type Conversation = {
-    id: string;
-    name: string;
-    kind: "person" | "group";
-    initials: string;
-    avatarTone: string;
-    status: string;
-    preview: string;
-    time: string;
-    unread?: number;
-    messages: Message[];
-};
 
 const initialConversations: Conversation[] = [];
 
@@ -55,15 +38,14 @@ export default function ChatPage() {
     const [conversations, setConversations] = useState(initialConversations);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [filter, setFilter] = useState<"all" | "people" | "groups">("all");
-    const [search, setSearch] = useState("");
     const [draft, setDraft] = useState("");
     const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
     const selected = conversations.find((conversation) => conversation.id === selectedId) ?? null;
-    const visibleConversations = useMemo(() => conversations.filter((conversation) => {
-        const matchesFilter = filter === "all" || (filter === "groups" ? conversation.kind === "group" : conversation.kind === "person");
-        return matchesFilter && conversation.name.toLowerCase().includes(search.toLowerCase());
-    }), [conversations, filter, search]);
+    // const visibleConversations = useMemo(() => conversations.filter((conversation) => {
+    //     const matchesFilter = filter === "all" || (filter === "groups" ? conversation.kind === "group" : conversation.kind === "person");
+    //     return matchesFilter && conversation.name.toLowerCase().includes(search.toLowerCase());
+    // }), [conversations, filter, search]);
 
     function selectConversation(id: string) {
         setSelectedId(id);
@@ -94,14 +76,10 @@ export default function ChatPage() {
                             <span className="eyebrow">YOUR SPACE</span>
                             <h1>Messages<span className="inbox-count">{conversations.length}</span></h1>
                         </div>
-                        <button className="icon-button compose-button" type="button" aria-label="Start a new conversation" title="New message">+</button>
+                        
                     </header>
 
-                    <label className="conversation-search">
-                        <Icon name="search" />
-                        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search conversations" aria-label="Search conversations" />
-                        <kbd>⌘ K</kbd>
-                    </label>
+                    
 
                     <div className="conversation-filters" role="tablist" aria-label="Conversation type">
                         {(["all", "people", "groups"] as const).map((item) => (
@@ -111,7 +89,7 @@ export default function ChatPage() {
                         ))}
                     </div>
 
-                    <div className="conversation-list">
+                    {/* <div className="conversation-list">
                         <div className="list-label">RECENT</div>
                         {visibleConversations.length ? visibleConversations.map((conversation) => (
                             <button key={conversation.id} type="button" className={`conversation-item${selectedId === conversation.id ? " conversation-active" : ""}`} onClick={() => selectConversation(conversation.id)}>
@@ -126,7 +104,8 @@ export default function ChatPage() {
                                 </span>
                             </button>
                         )) : <p className="empty-search">{conversations.length ? "No conversations found." : "No conversations yet."}</p>}
-                    </div>
+                    </div> */}
+                    <ConversationList user_id={} />
 
                     <footer className="sidebar-footer"><span className="footer-status-dot" /> All caught up <span>·</span> {conversations.length} conversations</footer>
                 </aside>
