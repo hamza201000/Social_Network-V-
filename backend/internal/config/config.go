@@ -7,8 +7,8 @@ import (
 	"net/http"
 )
 
-func Config(userHandler *handler.UserHandler) {
-	mux := router.Routers(userHandler)
+func Config(userHandler *handler.UserHandler, chatHandler *handler.ChatHandler) error {
+	mux := router.Routers(userHandler, chatHandler)
 	handler := middleware.CorsMiddleware(mux)
-	http.ListenAndServe(":8080",handler )
+	return http.ListenAndServe(":8080", handler)
 }

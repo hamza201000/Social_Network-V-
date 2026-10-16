@@ -6,13 +6,14 @@ import (
 	"net/http"
 )
 
-func Routers(userHandler *handler.UserHandler) *http.ServeMux {
+func Routers(userHandler *handler.UserHandler, chatHandler *handler.ChatHandler) *http.ServeMux {
 
 	mux := http.NewServeMux()
 	PostRouter(mux, userHandler)
 	CommentRouter(mux, userHandler)
 	UserRouter(mux, userHandler)
 	GroupRouter(mux, userHandler)
+	ChatRouter(mux, userHandler.UserRepo, chatHandler)
 	middleware.Logging(mux)
 	return mux
 }

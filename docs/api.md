@@ -47,3 +47,76 @@ Use JSON with `content`, or `multipart/form-data` with `content` and an optional
 Returns comments only when the current session can view the parent post.
 
 Successful create responses use HTTP `201` and return the new ID in `data.id`. Invalid input returns `400`; missing or expired sessions return `401`.
+
+## Private chats
+
+Chat endpoints require the existing `session_id` HttpOnly cookie. The logged-in user is always taken from that session; the request cannot choose its own sender ID. A conversation can be messaged when either user follows the other.
+
+### Send a message
+
+`POST /api/messages`
+
+```json
+{
+  "receiver_id": 12,
+  "message": "Hi there"
+}
+```
+
+The message is stored even when the receiver is offline. A `403` response means neither user follows the other.
+
+### Get a conversation
+
+`GET /api/chats/{userID}/messages`
+
+Returns messages between the logged-in user and the user identified in the path, ordered from oldest to newest.
+
+### List chats
+
+`GET /api/chats`
+
+Returns users the logged-in user has exchanged messages with, including the latest message and whether the user currently has an open WebSocket connection.
+
+### Mark a message as seen
+
+`PUT /api/messages/{id}/seen`
+
+Only the message receiver can mark it as seen. Repeating this request is safe.
+
+### Receive messages over WebSocket
+
+`GET /api/ws`
+
+Open this endpoint with the logged-in user's `session_id` cookie. Send JSON frames with `receiver_id` and `message` fields, the same format used by `POST /api/messages`. The saved message is sent to the receiver immediately if they are connected and echoed back to the sending WebSocket. Messages sent over HTTP are also delivered to connected receivers.
+
+Example browser console (after logging in on the same site):
+
+```js
+const socket = new WebSocket("ws://localhost:8080/api/ws");
+socket.onmessage = (event) => console.log(JSON.parse(event.data));
+socket.onopen = () => socket.send(JSON.stringify({
+  receiver_id: 12,
+  message: "Hello over WebSocket"
+}));
+```
+
+The WebSocket hub keeps presence in memory, so online status is local to the running server and resets when the server restarts.
+
+### Run locally and try the API
+
+From the repository root, start the backend (database migrations run automatically):
+
+```powershell
+cd backend
+go mod download
+go run cmd/server/main.go
+```
+
+Log in first and save the returned session cookie in `cookies.txt`, then send a message and retrieve the conversation:
+
+```powershell
+curl.exe -b cookies.txt -H "Content-Type: application/json" -d "{\"receiver_id\":12,\"message\":\"Hi there\"}" http://localhost:8080/api/messages
+curl.exe -b cookies.txt http://localhost:8080/api/chats/12/messages
+curl.exe -b cookies.txt http://localhost:8080/api/chats
+curl.exe -X PUT -b cookies.txt http://localhost:8080/api/messages/1/seen
+```
