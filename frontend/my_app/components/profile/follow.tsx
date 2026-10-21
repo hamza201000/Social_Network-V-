@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 
 
@@ -12,7 +13,7 @@ export default function Follow({ user_id, isFollowed }: { isFollowed: boolean | 
     }, [isFollowed]);
     const followUser = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/api/user/follow${user_id ? `?user_id=${user_id}` : ''}`, {
+            const response = await fetch(`${API_BASE_URL}/api/user/follow${user_id ? `?user_id=${user_id}` : ''}`, {
                 method: "GET",
                 credentials: "include"
             });

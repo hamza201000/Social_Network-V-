@@ -6,6 +6,8 @@ import Post from "../post/post";
 import { UserData } from "@/types/userData";
 import Follow from "./follow";
 import Connections from "./activeConnections";
+import { API_BASE_URL, imageUrl } from "@/lib/api";
+import { Ubuntu } from "next/font/google";
 
 
 export type ProfileConnection = {
@@ -35,21 +37,20 @@ export type ProfileData = {
 export default  function Profile({ username, myProfile }: { username: string, myProfile: boolean }) {
     const [openList, setOpenList] = useState<"followers" | "following" | null>(null);
     const [profile, setProfile] = useState<UserData>();
-    const [followers, setFollowers] = useState<ProfileConnection[]>([]);
-    const [following, setFollowing] = useState<ProfileConnection[]>([]);
+    const [avatarFailed, setAvatarFailed] = useState(false);
 
     // const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
-    const activeConnections = openList === "followers" ? followers : following;
+    
     const modalTitle = openList === "followers" ? "Followers" : "Following";
-    let apiUrl = `/api/user/${username}`;
+    let apiPath = `/api/user/${username}`;
     if (myProfile) {
-        apiUrl = `/api/myprofile`;
+        apiPath = `/api/myprofile`;
     }
     console.log("is my profile",myProfile);
     
     const fetchProfile = async () => {
         try {
-            const response = await fetch(`http://localhost:8080${apiUrl}`, {
+            const response = await fetch(`${API_BASE_URL}${apiPath}`, {
                 method: "GET",
                 credentials: "include"
             });
@@ -58,6 +59,7 @@ export default  function Profile({ username, myProfile }: { username: string, my
             }
             const data: UserData = await response.json();
             setProfile(data);
+            setAvatarFailed(false);
             console.log("Profile data fetched successfully:", data);
         } catch (error) {
             console.error("Error fetching profile data:", error);
@@ -70,14 +72,18 @@ export default  function Profile({ username, myProfile }: { username: string, my
         <div className="profile-container">
             <section className="profile-card" aria-labelledby="profile-title">
                 <header className="profile-header">
-                    <div className="profile-avatar" aria-label={profile?.avatarUrl ? "Profile photo" : "No profile photo added"}>
-                        {profile?.avatarUrl ? (
-                            <img src={profile.avatarUrl} alt="Profile" />
-                        ) : (
-                            <span className="profile-avatar-placeholder" aria-hidden="true">
-                                +
-                            </span>
-                        )}
+                    <div className="profile-avatar" aria-label="Profile photo">
+                        {profile?.avatar_url && profile.avatar_url!="" ? (
+                            <img
+                                src={`http://localhost:8080/api/images/${encodeURIComponent(profile.avatar_url)}`}
+                                alt="Profile"
+                                onError={() => setAvatarFailed(true)}
+                            />
+                        ) : <img
+                                src={`http://localhost:8080/api/images/icon_user.png`}
+                                alt="Profile"
+                                onError={() => setAvatarFailed(true)}
+                            />}
                     </div>
                     <div className="profile-identity">
                         <p className="profile-eyebrow">Profile</p>
@@ -158,7 +164,7 @@ export default  function Profile({ username, myProfile }: { username: string, my
                 </div>
             )}
             <div className="profile-card" id="profile-posts">
-                <Post query={username} myposts={myProfile} />
+                <Post query={username} myposts={myProfile} group_id={undefined}/>
             </div>
         </div>
     );

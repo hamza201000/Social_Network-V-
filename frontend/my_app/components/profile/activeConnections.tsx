@@ -1,6 +1,7 @@
 import { ProfileConnection } from "@/types/userData"
 import { useEffect, useState } from "react"
 import ConnectedProfiles from "./ConnectedProfiles"
+import { API_BASE_URL } from "@/lib/api";
 
 export default function Connections({
     user_id,
@@ -22,7 +23,7 @@ export default function Connections({
         const fetchFollowers = async () => {
             try {
                 setError(null)
-                const response = await fetch(`http://localhost:8080/api/user/${user_id}/${openList}`, {
+                const response = await fetch(`${API_BASE_URL}/api/user/${user_id}/${openList}`, {
                     credentials: "include"
                 })
                 if (!response.ok) {

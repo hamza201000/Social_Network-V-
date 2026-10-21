@@ -13,8 +13,8 @@ func (repo *UserRepository) CreatePost(userID int64, post models.PostRequest) (i
 	defer transaction.Rollback()
 
 	result, err := transaction.Exec(
-		"INSERT INTO posts (user_id, content, privacy) VALUES (?, ?, ?)",
-		userID, post.Content, post.Privacy,
+		"INSERT INTO posts (user_id, content, image_path, privacy) VALUES (?, ?, ?, ?)",
+		userID, post.Content, post.Image, post.Privacy,
 	)
 	if err != nil {
 		return 0, err
@@ -73,7 +73,7 @@ func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) 
 	posts := []models.PostData{}
 	for rows.Next() {
 		var post models.PostData
-		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Privacy, &post.Created_at); err != nil {
+		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Image, &post.Privacy, &post.Group_id, &post.Created_at); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)
@@ -95,7 +95,7 @@ func (repo *UserRepository) GetPostByUsername(username string, viewerID int64) (
 			SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id 
 			AND a.user_id = $2))
 		)`,
-	username, viewerID)
+		username, viewerID)
 
 	if err != nil {
 		fmt.Println("error getpostbyusername database", err)
@@ -105,13 +105,14 @@ func (repo *UserRepository) GetPostByUsername(username string, viewerID int64) (
 	var postList []models.PostData
 	for rows.Next() {
 		if err := rows.Scan(
-			&post.Id, 
-			&post.User_id, 
-			&post.Username, 
-			&post.Content, 
-			&post.Privacy, 
-			&post.Created_at);
-			 err != nil {
+			&post.Id,
+			&post.User_id,
+			&post.Username,
+			&post.Content,
+			&post.Image,
+			&post.Privacy,
+			&post.Group_id,
+			&post.Created_at); err != nil {
 			return nil, err
 		}
 		postList = append(postList, post)
@@ -125,7 +126,7 @@ func (repo *UserRepository) GetPostByUsername(username string, viewerID int64) (
 	return postList, nil
 }
 
-const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.privacy, p.created_at
+const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.image_path, p.privacy, p.group_id, p.created_at
 	FROM posts p JOIN users u ON u.id = p.user_id`
 
 func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs []int64) error {
@@ -142,12 +143,10 @@ func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs [
 	return nil
 }
 
-
-
 func (repo *UserRepository) GetPostMyPosts(user_id int64) ([]models.PostData, error) {
 	var post models.PostData
 	rows, err := repo.db.Query(postQuery+` WHERE u.id = $1`,
-	user_id)
+		user_id)
 	if err != nil {
 		fmt.Println("error GetPostMyPosts database", err)
 		return nil, err
@@ -156,13 +155,14 @@ func (repo *UserRepository) GetPostMyPosts(user_id int64) ([]models.PostData, er
 	var postList []models.PostData
 	for rows.Next() {
 		if err := rows.Scan(
-			&post.Id, 
-			&post.User_id, 
-			&post.Username, 
-			&post.Content, 
-			&post.Privacy, 
-			&post.Created_at);
-			 err != nil {
+			&post.Id,
+			&post.User_id,
+			&post.Username,
+			&post.Content,
+			&post.Image,
+			&post.Privacy,
+			&post.Group_id,
+			&post.Created_at); err != nil {
 			return nil, err
 		}
 		postList = append(postList, post)

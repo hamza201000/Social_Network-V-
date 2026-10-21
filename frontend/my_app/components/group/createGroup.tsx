@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 export type NewGroupDetails = {
   title: string;
@@ -23,7 +24,7 @@ export default function CreateGroup({ onCreateGroup }: CreateGroupProps) {
         title: title.trim(),
         description: description.trim(),
       };
-      const response = await fetch("http://localhost:8080/api/groups", {
+      const response = await fetch(`${API_BASE_URL}/api/groups`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

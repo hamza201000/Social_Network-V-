@@ -5,6 +5,7 @@ import (
 	"backend/internal/config"
 	handler "backend/internal/handlers"
 	"backend/internal/repository"
+	"backend/internal/services"
 	chatws "backend/internal/websocket"
 	"log"
 )
@@ -14,7 +15,12 @@ func main() {
 	defer db.Close()
 
 	userRepo := repository.NewUserRepository(db)
-	userHandler := handler.NewUserHandler(userRepo)
+	backendRoot, err := config.BackendRoot()
+	if err != nil {
+		log.Fatalf("could not determine backend root: %v", err)
+	}
+	imageStorage := services.NewImageStorage(backendRoot)
+	userHandler := handler.NewUserHandler(userRepo, imageStorage)
 	messageRepo := repository.NewMessageRepository(db)
 	chatHandler := handler.NewChatHandler(messageRepo, chatws.NewHub())
 

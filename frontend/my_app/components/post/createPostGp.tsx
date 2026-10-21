@@ -1,6 +1,7 @@
 import { resData } from "@/types/resData";
 import { useRef, useState } from "react";
 import "@/components/post/post.css"
+import { API_BASE_URL } from "@/lib/api";
 
 type CreatePostProps = {
   onPostCreated?: () => void;
@@ -51,7 +52,7 @@ export default function CreatePostGp({group_id}:CreatePostProps) {
                 form.append("image", image);
             }
             try {
-                const response = await fetch(`http://localhost:8080/api/groups/${encodeURIComponent(group_id)}/posts`, {
+                const response = await fetch(`${API_BASE_URL}/api/groups/${encodeURIComponent(group_id)}/posts`, {
                     method: "POST",
                     body: form,
                     credentials: "include"

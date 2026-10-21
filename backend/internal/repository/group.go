@@ -120,21 +120,28 @@ func (repo *UserRepository) GetGroup(group_id int64) (models.Group, error) {
 	return group, nil
 }
 
-
-func (repo *UserRepository) CreatePostGp(group_id,User_id int64,post models.PostRequest) (int64, error) {
+func (repo *UserRepository) CreatePostGp(group_id, User_id int64, post models.PostRequest) (int64, error) {
+	transaction, err := repo.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer transaction.Rollback()
 	query := `
 		INSERT INTO posts (user_id,content,image_path,group_id)
 		VALUES ($1,$2,$3,$4)
 		`
 	// 	WHERE (g.admin_id = $1 OR g.id = (SELECT group_id FROM members_gp WHERE user_id = $1 ) OR )
-	result,err := repo.db.Exec(query,User_id,post.Content,post.Image,group_id)
+	result, err := transaction.Exec(query, User_id, post.Content, post.Image, group_id)
 	if err != nil {
 		fmt.Println("Error retrieving groups from database:", err)
 		return 0, err
 	}
-	postId,err:=result.LastInsertId()
-	if err!=nil{
+	postId, err := result.LastInsertId()
+	if err != nil {
 		fmt.Println("Error retrieving groups from database:", err)
+		return 0, err
+	}
+	if err := transaction.Commit(); err != nil {
 		return 0, err
 	}
 	return postId, nil
@@ -142,7 +149,7 @@ func (repo *UserRepository) CreatePostGp(group_id,User_id int64,post models.Post
 
 func (repo *UserRepository) GetPostsGp(group_id int64) ([]models.PostData, error) {
 
-	quey:=`SELECT p.id, p.user_id, u.username, p.content,p.group_id, p.created_at
+	quey := `SELECT p.id, p.user_id, u.username, p.content, p.image_path, p.group_id, p.created_at
 	FROM posts p JOIN users u ON u.id = p.user_id
 	WHERE p.group_id=$1
 	ORDER BY p.created_at DESC
@@ -156,7 +163,7 @@ func (repo *UserRepository) GetPostsGp(group_id int64) ([]models.PostData, error
 	posts := []models.PostData{}
 	for rows.Next() {
 		var post models.PostData
-		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Group_id, &post.Created_at); err != nil {
+		if err := rows.Scan(&post.Id, &post.User_id, &post.Username, &post.Content, &post.Image, &post.Group_id, &post.Created_at); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)

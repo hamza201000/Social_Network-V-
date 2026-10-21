@@ -4,6 +4,7 @@ import { useDebounce } from "@/hooks/debounce";
 import { useEffect, useState } from "react";
 import SmallCard from "./smallGroupCard";
 import { Group } from "@/types/groupData";
+import { API_BASE_URL } from "@/lib/api";
 
 
 type SearchGroupProps = {
@@ -20,7 +21,7 @@ export default function SearchGroup() {
     try {
       setLoading(true)
       const response = await fetch(
-        `http://localhost:8080/api/groups/search?q=${encodeURIComponent(q)}`, {
+        `${API_BASE_URL}/api/groups/search?q=${encodeURIComponent(q)}`, {
         credentials: "include",
       }
       );

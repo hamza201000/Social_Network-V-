@@ -1,4 +1,5 @@
 import { ProfileConnection } from "@/types/userData";
+import { imageUrl } from "@/lib/api";
 
 
 export default function ConnectedProfiles({
@@ -20,8 +21,14 @@ export default function ConnectedProfiles({
                     onClick={() => onSelect(connection.user_id)}
                 >
                     <span className="connection-avatar" aria-hidden="true">
-                        {connection.avatarUrl ? (
-                            <img src={connection.avatarUrl} alt="" />
+                        {imageUrl(connection.avatarUrl) ? (
+                            <img
+                                src={imageUrl(connection.avatarUrl)}
+                                alt=""
+                                onError={(event) => {
+                                    event.currentTarget.hidden = true;
+                                }}
+                            />
                         ) : (
                             <span>{connection.username.slice(0, 1).toUpperCase()}</span>
                         )}
@@ -34,8 +41,14 @@ export default function ConnectedProfiles({
             ) : (
                 <>
                     <div className="connection-avatar" aria-hidden="true">
-                        {connection.avatarUrl ? (
-                            <img src={connection.avatarUrl} alt="" />
+                        {imageUrl(connection.avatarUrl) ? (
+                            <img
+                                src={imageUrl(connection.avatarUrl)}
+                                alt=""
+                                onError={(event) => {
+                                    event.currentTarget.hidden = true;
+                                }}
+                            />
                         ) : (
                             <span>{connection.username.slice(0, 1).toUpperCase()}</span>
                         )}

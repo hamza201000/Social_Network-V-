@@ -1,5 +1,6 @@
 import { Group } from "@/types/groupData"
 import { useEffect, useState } from "react"
+import { API_BASE_URL } from "@/lib/api";
 
 
 export default function Groups({id}:{id:number}){
@@ -7,7 +8,7 @@ export default function Groups({id}:{id:number}){
     const getGroup = async()=>{
         try{
 
-            const response= await fetch(`http://localhost:8080/api/group/${id}`,{
+            const response= await fetch(`${API_BASE_URL}/api/group/${id}`,{
                 credentials:"include"
             }) 
             const data : Group[] = await response.json()

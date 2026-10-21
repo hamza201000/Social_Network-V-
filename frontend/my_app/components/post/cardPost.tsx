@@ -1,6 +1,7 @@
 
 import "./post.css"
 import { PostData } from "@/types/postData"
+import { imageUrl } from "@/lib/api";
 export default function CardPost({ postData }: { postData: PostData }) {
 
     return (
@@ -14,10 +15,13 @@ export default function CardPost({ postData }: { postData: PostData }) {
             <div>
                 <p>{postData.content}</p>
 
-                {postData.image && (
+                {imageUrl(postData.image) && (
                     <img
-                        src={postData.image}
+                        src={imageUrl(postData.image)}
                         alt={`Image posted by ${postData.username}`}
+                        onError={(event) => {
+                            event.currentTarget.hidden = true;
+                        }}
                     />
                 )}
             </div>

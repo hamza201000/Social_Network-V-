@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { resData } from "@/types/resData";
+import { API_BASE_URL } from "@/lib/api";
 
 type CreateEventProps = {
   group_id: string;
@@ -25,7 +26,7 @@ export default function CreateEvent({ group_id, onEventCreated }: CreateEventPro
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/groups/${encodeURIComponent(group_id)}/events`,
+        `${API_BASE_URL}/api/groups/${encodeURIComponent(group_id)}/events`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

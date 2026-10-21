@@ -13,6 +13,7 @@ export interface ChatUser {
   user_id: number;
   username: string;
   is_online: boolean;
+  avatar_url?: string;
   last_msg: ChatMessage | null;
 }
 

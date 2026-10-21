@@ -1,4 +1,5 @@
 import type { ChatUser } from "@/types/chat";
+import profile from "../profile/profile";
 
 interface ConversationListProps {
   conversations: ChatUser[];
@@ -37,10 +38,21 @@ export default function ConversationList({
             onClick={() => onSelect(user)}
           >
             <span
-              className="chat-avatar tone-green"
-              aria-label={user.username}
+             
             >
-              {initials(user.username)}
+              {user?.avatar_url && user.avatar_url!="" ? (
+                            <img
+                                src={`http://localhost:8080/api/images/${encodeURIComponent(user.avatar_url)}`}
+                                              className="chat-avatar tone-green"
+
+                                
+                            />
+                        ) : <img
+                                src={`http://localhost:8080/api/images/icon_user.png`}
+                                              className="chat-avatar tone-green"
+
+                                
+                            />}
               {user.is_online && <i className="avatar-presence" />}
             </span>
             <span className="conversation-copy">

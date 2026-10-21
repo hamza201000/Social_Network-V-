@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Group, GroupRequest } from "@/types/groupData";
 import { error } from "console";
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/api";
 
 type CardGroupProps = {
   group: Group;
@@ -62,7 +63,7 @@ export default function CardGroup({
   }
   const onRequestToJoin = async (groupId: string) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/groups/${groupId}/join`, {
+      const response = await fetch(`${API_BASE_URL}/api/groups/${groupId}/join`, {
         method: "GET",
         credentials: "include",
       });

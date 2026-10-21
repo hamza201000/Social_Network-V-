@@ -105,7 +105,7 @@ func (repo *MessageRepository) GetChatUsers(userID int64) ([]models.Client, erro
 			WHERE sender_id = $1 OR receiver_id = $1
 			GROUP BY other_user_id
 		)
-		SELECT u.id, u.username,
+		SELECT u.id, u.username,u.avatar_url,
 			m.id, m.sender_id, m.receiver_id, m.message, m.seen, m.created_at, sender.username
 		FROM chat_users chats
 		JOIN users u ON u.id = chats.other_user_id
@@ -129,6 +129,7 @@ func (repo *MessageRepository) GetChatUsers(userID int64) ([]models.Client, erro
 		if err := rows.Scan(
 			&chat.UserID,
 			&chat.Username,
+			&chat.Avatar_url,
 			&messageID,
 			&senderID,
 			&receiverID,

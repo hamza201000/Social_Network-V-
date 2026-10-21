@@ -8,6 +8,7 @@ import CreatePostGp from "../post/createPostGp";
 import Post from "../post/post";
 import CreateEvent from "@/components/events/createEvent";
 import GetEvents from "@/components/events/GetEvents";
+import { API_BASE_URL } from "@/lib/api";
 
 type GroupDetailProps = {
   groupId: string;
@@ -64,7 +65,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
 
     async function loadGroup() {
       try {
-        const response = await fetch(`http://localhost:8080/api/groups/${encodeURIComponent(groupId)}`, {
+        const response = await fetch(`${API_BASE_URL}/api/groups/${encodeURIComponent(groupId)}`, {
           credentials: "include",
         });
         if (!response.ok) return;

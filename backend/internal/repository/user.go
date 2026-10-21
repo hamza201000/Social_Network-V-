@@ -7,23 +7,68 @@ import (
 )
 
 func (repo *UserRepository) RegisterUser(user models.RegisterRequest) error {
+	transaction, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
 
-	qeury := `INSERT INTO users
-	(first_name,last_name,username,email,password_hash,date_of_birth,about_me)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-	result, err := repo.db.Exec(qeury, user.FirstName, user.LastName, user.Username, user.Email, user.Password, user.DateOfBirth, user.AboutMe)
+	_, err = transaction.Exec(`INSERT INTO users
+		(first_name, last_name, username, email, password_hash, date_of_birth, about_me, avatar_url)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		user.FirstName, user.LastName, user.Username, user.Email,
+		user.Password, user.DateOfBirth, user.AboutMe, user.AvatarUrl)
 	if err != nil {
-		fmt.Println("err database", err)
 		return err
 	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		fmt.Println("err in result database", err)
-		return err
-	}
-	fmt.Println("userid:", id)
-	return nil
+	return transaction.Commit()
+}
+
+func (repo *UserRepository) ImageReferenced(filename string) (bool, error) {
+	var referenced bool
+	err := repo.db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM users WHERE avatar_url = ?
+			UNION ALL SELECT 1 FROM posts WHERE image_path = ?
+			UNION ALL SELECT 1 FROM comments WHERE image_path = ?
+		)`, filename, filename, filename).Scan(&referenced)
+	return referenced, err
+}
+
+func (repo *UserRepository) CanViewImage(filename string, viewerID int64) (bool, error) {
+	var allowed bool
+	err := repo.db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM users WHERE avatar_url = ?
+			UNION ALL
+			SELECT 1 FROM posts p
+			WHERE p.image_path = ? AND (
+				p.group_id != 0 OR p.privacy = 'public' OR p.user_id = ? OR
+				(p.privacy = 'almost_private' AND EXISTS (
+					SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id
+				)) OR
+				(p.privacy = 'private' AND EXISTS (
+					SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?
+				))
+			)
+			UNION ALL
+			SELECT 1 FROM comments c
+			JOIN posts p ON p.id = c.post_id
+			WHERE c.image_path = ? AND (
+				p.privacy = 'public' OR p.user_id = ? OR
+				(p.privacy = 'almost_private' AND EXISTS (
+					SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id
+				)) OR
+				(p.privacy = 'private' AND EXISTS (
+					SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?
+				))
+			)
+		)`,
+		filename,
+		filename, viewerID, viewerID, viewerID,
+		filename, viewerID, viewerID, viewerID,
+	).Scan(&allowed)
+	return allowed, err
 }
 
 func (repo *UserRepository) LoginUser(user models.LoginRequest) (*models.User, error) {
@@ -102,6 +147,7 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 			u.last_name,
 			u.username,
 			u.email,
+			u.avatar_url,
 			EXISTS (
           			SELECT 1
           			FROM followers f
@@ -122,6 +168,7 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 		&user.LastName,
 		&user.Username,
 		&user.Email,
+		&user.AvatarUrl,
 		&user.FollowedByMe,
 	)
 
@@ -207,7 +254,7 @@ func (repo *UserRepository) FollowUser(followerID int64, followingTargetID int64
 	return nil
 }
 
-func (repo *UserRepository) Followers(follower_id int64) ([]models.ProfileConnection,error) {
+func (repo *UserRepository) Followers(follower_id int64) ([]models.ProfileConnection, error) {
 	var followers []models.ProfileConnection
 	query := `
 		SELECT f.follower_id,u.username,u.avatar_url
@@ -216,22 +263,22 @@ func (repo *UserRepository) Followers(follower_id int64) ([]models.ProfileConnec
 		WHERE f.following_target_id=$1
 	`
 
-	rows,err := repo.db.Query(query, follower_id)
+	rows, err := repo.db.Query(query, follower_id)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	for rows.Next(){
+	for rows.Next() {
 		var follower models.ProfileConnection
-		err:=rows.Scan(&follower.User_id,&follower.Username,&follower.AvatarUrl)
-		if (err!=nil){
-			return  nil,err
+		err := rows.Scan(&follower.User_id, &follower.Username, &follower.AvatarUrl)
+		if err != nil {
+			return nil, err
 		}
-		followers=append(followers, follower)
+		followers = append(followers, follower)
 	}
-	return followers,nil
+	return followers, nil
 }
 
-func (repo *UserRepository) Following(follower_id int64) ([]models.ProfileConnection,error) {
+func (repo *UserRepository) Following(follower_id int64) ([]models.ProfileConnection, error) {
 	var followers []models.ProfileConnection
 	query := `
 		SELECT f.following_target_id,u.username,u.avatar_url
@@ -239,17 +286,17 @@ func (repo *UserRepository) Following(follower_id int64) ([]models.ProfileConnec
 		JOIN users u ON f.following_target_id=u.id
 		WHERE f.follower_id=$1
 	`
-	rows,err := repo.db.Query(query, follower_id)
+	rows, err := repo.db.Query(query, follower_id)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	for rows.Next(){
+	for rows.Next() {
 		var follower models.ProfileConnection
-		err:=rows.Scan(&follower.User_id,&follower.Username,&follower.AvatarUrl)
-		if (err!=nil){
-			return  nil,err
+		err := rows.Scan(&follower.User_id, &follower.Username, &follower.AvatarUrl)
+		if err != nil {
+			return nil, err
 		}
-		followers=append(followers, follower)
+		followers = append(followers, follower)
 	}
-	return followers,nil
+	return followers, nil
 }

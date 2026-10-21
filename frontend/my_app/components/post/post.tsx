@@ -4,6 +4,7 @@ import "@/app/globals.css"
 import { PostData } from "@/types/postData";
 import CreatePost from "@/components/post/createPost";
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 
 
@@ -15,7 +16,7 @@ export default function Post({ query, myposts,group_id }: { query: string | unde
     group_id && (apiKey = `/api/groups/${group_id}/posts`);
     const fetchPosts = async () => {
         try {
-            const response = await fetch(`http://localhost:8080${apiKey}`, {
+            const response = await fetch(`${API_BASE_URL}${apiKey}`, {
                 method: "GET",
                 credentials: "include"
             });

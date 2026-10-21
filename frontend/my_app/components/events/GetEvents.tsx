@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { GroupEvent } from "@/types/eventData";
 import EventCard from "./EventCard";
+import { API_BASE_URL } from "@/lib/api";
 
 type GetEventsProps = {
   group_id: string;
@@ -24,7 +25,7 @@ export default function GetEvents({ group_id, refreshKey, onEventsLoaded }: GetE
       setError(null);
       try {
         const response = await fetch(
-          `http://localhost:8080/api/groups/${encodeURIComponent(group_id)}/events`,
+          `${API_BASE_URL}/api/groups/${encodeURIComponent(group_id)}/events`,
           { credentials: "include" },
         );
         if (!response.ok) throw new Error("Could not load group events.");

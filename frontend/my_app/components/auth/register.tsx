@@ -5,6 +5,7 @@ import { resData } from "@/types/resData";
 import { useRef, useState } from "react";
 import "./auth.css"
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/api";
 export default function RegisterForm() {
 
     const [email, setEmail] = useState("");
@@ -59,7 +60,7 @@ export default function RegisterForm() {
             
         } 
         try {
-            const response = await fetch(`http://localhost:8080/api/register`, {
+            const response = await fetch(`${API_BASE_URL}/api/register`, {
                 method: "POST",
                 body: Form,
                 credentials: "include"

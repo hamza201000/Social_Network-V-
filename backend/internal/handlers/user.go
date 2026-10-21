@@ -6,7 +6,9 @@ import (
 	"backend/internal/services"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -14,12 +16,14 @@ import (
 )
 
 type UserHandler struct {
-	UserRepo *repository.UserRepository
+	UserRepo     *repository.UserRepository
+	ImageStorage *services.ImageStorage
 }
 
-func NewUserHandler(userRepo *repository.UserRepository) *UserHandler {
+func NewUserHandler(userRepo *repository.UserRepository, imageStorage *services.ImageStorage) *UserHandler {
 	return &UserHandler{
-		UserRepo: userRepo,
+		UserRepo:     userRepo,
+		ImageStorage: imageStorage,
 	}
 }
 
@@ -61,23 +65,16 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var res models.Res
 	var userData models.RegisterRequest
 
-	fmt.Println("register request received")
-
-	// r.Body = http.MaxBytesReader(
-	// 	w,
-	// 	r.Body,
-	// 	10*1024*1024,
-	// )
-
-	// err := r.ParseMultipartForm(10 * 1024 * 1024)
-	// if err != nil {
-	// 	SendError(
-	// 		w,
-	// 		http.StatusRequestEntityTooLarge,
-	// 		"request is too large",
-	// 	)
-	// 	return
-	// }
+	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
+	if err := r.ParseMultipartForm(1 * 1024 * 1024); err != nil {
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			SendError(w, http.StatusRequestEntityTooLarge, "request is too large")
+			return
+		}
+		SendError(w, http.StatusBadRequest, "request is too large or invalid")
+		return
+	}
 
 	userData.FirstName = strings.TrimSpace(r.FormValue("first_name"))
 	userData.LastName = strings.TrimSpace(r.FormValue("last_name"))
@@ -88,8 +85,6 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	userData.AboutMe = strings.TrimSpace(r.FormValue("about_me"))
 
 	err := services.RegisterRequest(userData)
-	fmt.Println(userData)
-	fmt.Println(err)
 	if err != nil {
 		SendError(
 			w,
@@ -99,7 +94,10 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("image")
+	file, header, err := r.FormFile("avatar")
+	if errors.Is(err, http.ErrMissingFile) {
+		file, header, err = r.FormFile("image")
+	}
 
 	if err == nil && file != nil {
 		defer file.Close()
@@ -125,10 +123,22 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 			)
 			return
 		}
+		userData.AvatarUrl, err = repo.ImageStorage.Save(file, contentType)
+		if err != nil {
+			log.Printf("store profile image: %v", err)
+			SendError(w, http.StatusInternalServerError, "could not store image")
+			return
+		}
+	} else if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		SendError(w, http.StatusBadRequest, "invalid image")
+		return
 	}
 	err = repo.UserRepo.RegisterUser(userData)
 	if err != nil {
-		fmt.Println("register user error:", err)
+		if userData.AvatarUrl != "" {
+			repo.removeNewImage(userData.AvatarUrl)
+		}
+		log.Printf("register user: %v", err)
 		SendError(
 			w,
 			http.StatusInternalServerError,
@@ -138,6 +148,12 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res.Message = "user registered successfully"
+	if userData.AvatarUrl != "" {
+		res.Data = map[string]string{
+			"avatar_url": userData.AvatarUrl,
+			"image_url":  "/api/images/" + userData.AvatarUrl,
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	SendJSON(w, http.StatusCreated, res)
@@ -208,14 +224,14 @@ func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Req
 }
 func (userHandler UserHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("in")
-	following_target_id:=r.URL.Query().Get("user_id")
-	user_target,err:=strconv.Atoi(following_target_id)
-	if err!=nil{
+	following_target_id := r.URL.Query().Get("user_id")
+	user_target, err := strconv.Atoi(following_target_id)
+	if err != nil {
 		SendError(w, http.StatusBadRequest, "wrong data send")
 		return
 	}
 	user_id := r.Context().Value("user_id").(int64)
-	err = userHandler.UserRepo.FollowUser(user_id,int64(user_target))
+	err = userHandler.UserRepo.FollowUser(user_id, int64(user_target))
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
@@ -239,18 +255,18 @@ func (userHandler UserHandler) GetMyProfile(w http.ResponseWriter, r *http.Reque
 
 func (userHandler UserHandler) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("in")
-	Value:=r.PathValue("user_id")
-	user_target,err:=strconv.Atoi(Value)
-	if err!=nil{
-		fmt.Println("error strcnv",err)
+	Value := r.PathValue("user_id")
+	user_target, err := strconv.Atoi(Value)
+	if err != nil {
+		fmt.Println("error strcnv", err)
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
 	// user_id := r.Context().Value("user_id").(int64)
-	followers,err := userHandler.UserRepo.Followers(int64(user_target))
+	followers, err := userHandler.UserRepo.Followers(int64(user_target))
 	if err != nil {
-		fmt.Println("error data base GetFollowers ",err)
-		if (err==sql.ErrNoRows){
+		fmt.Println("error data base GetFollowers ", err)
+		if err == sql.ErrNoRows {
 			SendError(w, http.StatusNotFound, "no connection found")
 		}
 		SendError(w, http.StatusInternalServerError, "internal server")
@@ -260,18 +276,18 @@ func (userHandler UserHandler) GetFollowers(w http.ResponseWriter, r *http.Reque
 }
 func (userHandler UserHandler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("in")
-	Value:=r.PathValue("user_id")
-	user_target,err:=strconv.Atoi(Value)
-	if err!=nil{
-		fmt.Println("error strcnv",err)
+	Value := r.PathValue("user_id")
+	user_target, err := strconv.Atoi(Value)
+	if err != nil {
+		fmt.Println("error strcnv", err)
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
 	// user_id := r.Context().Value("user_id").(int64)
-	connections,err := userHandler.UserRepo.Following(int64(user_target))
+	connections, err := userHandler.UserRepo.Following(int64(user_target))
 	if err != nil {
-		fmt.Println("error data base getfoolowin ",err)
-		if (err==sql.ErrNoRows){
+		fmt.Println("error data base getfoolowin ", err)
+		if err == sql.ErrNoRows {
 			SendError(w, http.StatusNotFound, "no connection found")
 		}
 		SendError(w, http.StatusInternalServerError, "internal server")

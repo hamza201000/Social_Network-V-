@@ -3,12 +3,11 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import ConversationList from "@/components/chat/conv_list";
 import type { ChatMessage, ChatUser, NewMessage } from "@/types/chat";
+import { API_BASE_URL } from "@/lib/api";
 import "./chat.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
 function websocketUrl() {
-  const url = new URL(API_URL);
+  const url = new URL(API_BASE_URL);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.pathname = "/api/ws";
   return url.toString();
@@ -33,7 +32,7 @@ async function checkResponse(response: Response) {
 }
 
 async function markMessageSeen(messageId: number) {
-  const response = await fetch(`${API_URL}/api/messages/${messageId}/seen`, {
+  const response = await fetch(`${API_BASE_URL}/api/messages/${messageId}/seen`, {
     method: "PUT",
     credentials: "include",
   });
@@ -58,7 +57,7 @@ export default function ChatPage() {
 
     async function loadConversations() {
       try {
-        const response = await fetch(`${API_URL}/api/chats`, {
+        const response = await fetch(`${API_BASE_URL}/api/chats`, {
           credentials: "include",
         });
         await checkResponse(response);
@@ -103,7 +102,6 @@ export default function ChatPage() {
               ? current
               : [...current, message],
           );
-
           if (message.sender_id === currentChat.user_id && !message.seen) {
             void markMessageSeen(message.id)
               .then(() =>
@@ -118,7 +116,6 @@ export default function ChatPage() {
               );
           }
         }
-
         void loadConversations();
       };
       connection.onerror = () => {

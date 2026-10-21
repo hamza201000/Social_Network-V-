@@ -5,11 +5,23 @@ import (
 )
 
 func (repo *UserRepository) CreateComment(userID, postID int64, comment models.CommentRequest) (int64, error) {
-	result, err := repo.db.Exec("INSERT INTO comments (user_id, post_id, content, image_path) VALUES (?, ?, ?, ?)", userID, postID, comment.Content, comment.Image)
+	transaction, err := repo.db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	return result.LastInsertId()
+	defer transaction.Rollback()
+	result, err := transaction.Exec("INSERT INTO comments (user_id, post_id, content, image_path) VALUES (?, ?, ?, ?)", userID, postID, comment.Content, comment.Image)
+	if err != nil {
+		return 0, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	if err := transaction.Commit(); err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 func (repo *UserRepository) GetComments(postID int64) ([]models.CommentData, error) {

@@ -5,6 +5,7 @@ import CardGroup from "@/components/group/CardGroup";
 import CreateGroup, { type NewGroupDetails } from "@/components/group/createGroup";
 import SearchGroup from "@/components/group/searchGroup";
 import type { Group } from "@/types/groupData";
+import { API_BASE_URL } from "@/lib/api";
 import "./groups.css";
 
 
@@ -28,7 +29,7 @@ export default function GroupsPage() {
   //   );
   // }, [groups, query]);
   const getGroups = async () => {
-    const response = await fetch(`http://localhost:8080/api/groups`, {
+    const response = await fetch(`${API_BASE_URL}/api/groups`, {
       method: "GET",
       credentials: "include",
     });

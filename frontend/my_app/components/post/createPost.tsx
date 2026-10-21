@@ -3,6 +3,7 @@ import { resData } from "@/types/resData";
 import { UserData } from "@/types/userData";
 import { useRef, useState } from "react";
 import Connections from "@/components/profile/activeConnections";
+import { API_BASE_URL } from "@/lib/api";
 
 type CreatePostProps = {
   onPostCreated: () => void;
@@ -23,7 +24,7 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
     async function handleOpenConnections() {
         if (userId === undefined) {
             try {
-                const response = await fetch("http://localhost:8080/api/myprofile", {
+                const response = await fetch(`${API_BASE_URL}/api/myprofile`, {
                     credentials: "include"
                 });
                 if (!response.ok) {
@@ -92,7 +93,7 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
             form.append("image", image);
         }
         try {
-            const response = await fetch("http://localhost:8080/api/posts", {
+            const response = await fetch(`${API_BASE_URL}/api/posts`, {
                 method: "POST",
                 body: form,
                 credentials: "include"

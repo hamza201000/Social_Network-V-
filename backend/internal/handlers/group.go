@@ -117,11 +117,17 @@ func (userHandler UserHandler) GetGroup(w http.ResponseWriter, r *http.Request) 
 func (userHandler *UserHandler) CreatePostGp(w http.ResponseWriter, r *http.Request) {
 	// userID, err := userHandler.requiredUserID(r)
 	user_id := r.Context().Value("user_id").(int64)
-	post, err := parsePostRequest(w, r)
+	post, err := parsePostRequest(w, r, userHandler.ImageStorage)
 	if err != nil {
-		SendError(w, http.StatusBadRequest, err.Error())
+		sendImageRequestError(w, err)
 		return
 	}
+	imagePersisted := false
+	defer func() {
+		if post.Image != "" && !imagePersisted {
+			userHandler.removeNewImage(post.Image)
+		}
+	}()
 	value := r.PathValue("group_id")
 	group_id, err := strconv.Atoi(value)
 	if err != nil {
@@ -132,26 +138,34 @@ func (userHandler *UserHandler) CreatePostGp(w http.ResponseWriter, r *http.Requ
 		SendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	postID, err := userHandler.UserRepo.CreatePostGp( int64(group_id),user_id,post)
+	postID, err := userHandler.UserRepo.CreatePostGp(int64(group_id), user_id, post)
 	if err != nil {
 		fmt.Println("error createpost:::", err)
 		SendError(w, http.StatusInternalServerError, "could not create post")
 		return
 	}
-	SendJSON(w, http.StatusCreated, models.Res{Message: "post created successfully", Data: map[string]int64{"id": postID}})
+	imagePersisted = true
+	SendJSON(w, http.StatusCreated, models.Res{
+		Message: "post created successfully",
+		Data: map[string]any{
+			"id":        postID,
+			"image":     post.Image,
+			"image_url": imageURL(post.Image),
+		},
+	})
 }
 
 func (userHandler *UserHandler) GetPostGp(w http.ResponseWriter, r *http.Request) {
 	// userID, err := userHandler.requiredUserID(r)
 	user_id := r.Context().Value("user_id").(int64)
-	
+
 	value := r.PathValue("group_id")
 	group_id, err := strconv.Atoi(value)
 	if err != nil {
 		SendError(w, http.StatusBadRequest, "wrong data group")
 		return
 	}
-	user_id=user_id //i have to check authorized 
+	user_id = user_id //i have to check authorized
 	posts, err := userHandler.UserRepo.GetPostsGp(int64(group_id))
 	if err != nil {
 		fmt.Println("error getposts:::", err)

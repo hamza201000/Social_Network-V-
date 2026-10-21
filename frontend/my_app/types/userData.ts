@@ -4,7 +4,7 @@ export type UserData = {
   last_name: string;
   username: string;
   email: string;
-  avatarUrl: string;
+  avatar_url: string;
   date_of_birth: string;
   about_me: string;
   followed_by_me:boolean;

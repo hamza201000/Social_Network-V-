@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GroupEvent } from "@/types/eventData";
 import type { resData } from "@/types/resData";
+import { API_BASE_URL } from "@/lib/api";
 
 type EventCardProps = {
   event: GroupEvent;
@@ -20,7 +21,7 @@ export default function EventCard({ event, group_id, onVoted }: EventCardProps) 
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:8080/api/groups/${encodeURIComponent(group_id)}/events/${event.id}/response`,
+        `${API_BASE_URL}/api/groups/${encodeURIComponent(group_id)}/events/${event.id}/response`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
