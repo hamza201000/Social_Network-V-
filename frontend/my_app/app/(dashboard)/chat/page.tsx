@@ -85,8 +85,8 @@ export default function ChatPage() {
       };
       connection.onmessage = (event) => {
         const message: ChatMessage = JSON.parse(event.data);
-        // the same socket also carries notifications: the bell in the top bar handles those
-        if ((message.type as string) === "notification") return;
+        // the same socket also carries notifications and group updates: only chat messages and errors are handled here
+        if (message.type !== "message" && message.type !== "error") return;
         if (message.type === "error") {
           setError(message.message);
           return;

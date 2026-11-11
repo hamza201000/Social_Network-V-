@@ -11,6 +11,9 @@ type Group struct {
 	AdminId     int64  `json:"admin_id"`
 	AdminName   string `json:"admin_name"`
 	MemberCount int    `json:"member_count"`
+	// MyStatus is the viewer's relation to the group:
+	// "admin", "member", "invited", "pending" or "none".
+	MyStatus string `json:"my_status"`
 }
 
 type NewEvent struct {
@@ -49,4 +52,29 @@ type InvitableUser struct {
 	Username  string `json:"username"`
 	AvatarUrl string `json:"avatar_url"`
 	Status    string `json:"status"` // "none", "invited", "pending", "member"
+}
+
+// GroupMember is a member of a group, or a user with a pending join request.
+type GroupMember struct {
+	UserId    int64  `json:"user_id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Username  string `json:"username"`
+	AvatarUrl string `json:"avatar_url"`
+	Role      string `json:"role,omitempty"` // "admin" or "member"
+	CreatedAt string `json:"created_at"`
+}
+
+// DecisionRequest is the body used to accept or refuse an invitation or a join request.
+type DecisionRequest struct {
+	Accept bool `json:"accept"`
+}
+
+// GroupUpdatePush is sent over the websocket to tell open pages that a
+// group's members, requests or invitations changed. It is not stored.
+type GroupUpdatePush struct {
+	Type    string `json:"type"` // always "group_update"
+	GroupId int64  `json:"group_id"`
+	Action  string `json:"action"`
+	UserId  int64  `json:"user_id"`
 }

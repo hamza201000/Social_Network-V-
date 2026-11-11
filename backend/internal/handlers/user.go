@@ -1,10 +1,10 @@
 package handler
 
 import (
-	chatws "backend/internal/websocket"
 	"backend/internal/models"
 	"backend/internal/repository"
 	"backend/internal/services"
+	chatws "backend/internal/websocket"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -164,8 +164,8 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 func (userHandler UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	var res models.Res
-	cookie:=r.Context().Value("session_id").(string)
-	fmt.Print("session",cookie)
+	cookie := r.Context().Value("session_id").(string)
+	fmt.Print("session", cookie)
 	err := userHandler.UserRepo.DeleteSession(cookie)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")

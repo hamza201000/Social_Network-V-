@@ -35,3 +35,11 @@ type NotificationPush struct {
 	Type         string       `json:"type"`
 	Notification Notification `json:"notification"`
 }
+
+// Group membership notification types.
+const (
+	NotifInviteAccepted = "invite_accepted"
+	NotifInviteDeclined = "invite_declined"
+	NotifJoinAccepted   = "join_accepted"
+	NotifJoinRefused    = "join_refused"
+)

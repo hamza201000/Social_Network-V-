@@ -75,19 +75,19 @@ func (repo *UserRepository) GetGroupEvents(userID, groupID int64) ([]models.Even
 }
 
 func (repo *UserRepository) VoteEvent(userID, groupID, eventID int64, response string) error {
-    if response != "Going" && response != "Not going" {
-        return errors.New("response must be Going or Not going")
-    }
+	if response != "Going" && response != "Not going" {
+		return errors.New("response must be Going or Not going")
+	}
 
-    member, err := repo.isGroupMember(userID, groupID)
-    if err != nil {
-        return err
-    }
-    if !member {
-        return ErrNotGroupMember
-    }
+	member, err := repo.isGroupMember(userID, groupID)
+	if err != nil {
+		return err
+	}
+	if !member {
+		return ErrNotGroupMember
+	}
 
-    result, err := repo.db.Exec(`
+	result, err := repo.db.Exec(`
         INSERT INTO event_responses (event_id, user_id, response, updated_at)
         VALUES (
             (SELECT id FROM events WHERE id = $1 AND group_id = $2),
@@ -101,18 +101,18 @@ func (repo *UserRepository) VoteEvent(userID, groupID, eventID int64, response s
             updated_at = CURRENT_TIMESTAMP
     `, eventID, groupID, userID, response)
 
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    count, err := result.RowsAffected()
-    if err != nil {
-        return err
-    }
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
 
-    if count == 0 {
-        return sql.ErrNoRows
-    }
+	if count == 0 {
+		return sql.ErrNoRows
+	}
 
-    return nil
+	return nil
 }

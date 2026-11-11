@@ -62,12 +62,12 @@ func (imageHandler *ImageHandler) GetAuthorizedImage(repo *repository.UserReposi
 		return
 	}
 	filename := r.PathValue("filename")
-	if (filename=="icon_user.png"){
-		imageHandler.GetImage(w, r);
-		return 
+	if filename == repository.DefaultAvatar {
+		imageHandler.GetImage(w, r)
+		return
 	}
 	if !services.ValidImageFilename(filename) {
-		fmt.Println("error double error :::",filename)
+		fmt.Println("error double error :::", filename)
 		SendError(w, http.StatusBadRequest, "invalid image filename")
 		return
 	}

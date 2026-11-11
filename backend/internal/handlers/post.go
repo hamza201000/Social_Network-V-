@@ -16,7 +16,6 @@ import (
 var errImageStorage = errors.New("could not store image")
 
 func (userHandler *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("in hhhh")
 	user_id := r.Context().Value("user_id").(int64)
 	posts, err := userHandler.UserRepo.GetPosts(user_id)
 	if err != nil {
@@ -72,7 +71,6 @@ func (userHandler *UserHandler) GetComments(w http.ResponseWriter, r *http.Reque
 }
 
 func (userHandler *UserHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
-	// userID, err := userHandler.requiredUserID(r)
 	user_id := r.Context().Value("user_id").(int64)
 	post, err := parsePostRequest(w, r, userHandler.ImageStorage)
 	if err != nil {
@@ -162,26 +160,6 @@ func (userHandler *UserHandler) CreateComment(w http.ResponseWriter, r *http.Req
 		},
 	})
 }
-
-// func (userHandler *UserHandler) requiredUserID(r *http.Request) (int64, error) {
-// 	cookie, err := r.Cookie("session_id")
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	session, err := userHandler.UserRepo.GetSession(cookie.Value)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return int64(session.User_id), nil
-// }
-
-// func (userHandler *UserHandler) optionalUserID(r *http.Request) int64 {
-// 	userID, err := userHandler.requiredUserID(r)
-// 	if err != nil {
-// 		return 0
-// 	}
-// 	return userID
-// }
 
 func pathID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("id"), 10, 64)

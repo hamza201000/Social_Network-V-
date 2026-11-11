@@ -7,7 +7,7 @@ import (
 )
 
 func ValidateCommentRequest(comment models.CommentRequest) error {
-	if strings.TrimSpace(comment.Content) == ""  {
+	if strings.TrimSpace(comment.Content) == "" {
 		return errors.New("comment content is required")
 	}
 	return nil

@@ -690,6 +690,132 @@
   font-size: 0.8rem;
 }
 
+.group-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.group-view-members:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.group-secondary-action {
+  display: inline-flex;
+  min-height: 45px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 17px;
+  border: 1px solid #cfdccf;
+  border-radius: 8px;
+  background: #fff;
+  color: #35694d;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.group-secondary-action:hover:not(:disabled) {
+  background: #f2f7f1;
+}
+
+.group-secondary-action:disabled {
+  color: #7d8a80;
+  cursor: default;
+}
+
+.group-count-badge {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  place-items: center;
+  border-radius: 10px;
+  background: #c4523f;
+  color: #fff;
+  font-size: 0.7rem;
+}
+
+.group-meta-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.group-invite-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 28px 24px;
+  padding: 14px 16px;
+  border: 1px solid #cfe0cf;
+  border-radius: 10px;
+  background: #f2f8f1;
+  color: #304438;
+  font-size: 0.86rem;
+}
+
+.group-invite-banner > div,
+.group-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.group-row-actions {
+  margin-left: auto;
+}
+
+.group-invite-banner .group-invite-button,
+.group-row-actions .group-invite-button {
+  margin-left: 0;
+}
+
+.group-decline-button {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid #e3c9c5;
+  border-radius: 7px;
+  background: #fff;
+  color: #9a3b33;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.group-decline-button:hover:not(:disabled) {
+  background: #fbeceb;
+}
+
+.group-decline-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.group-action-notice {
+  margin: 0 28px 20px;
+  color: #4b704f;
+  font-size: 0.82rem;
+}
+
+.group-locked {
+  padding: 40px 20px;
+  border: 1px dashed #d5e0d4;
+  border-radius: 12px;
+  color: #727e75;
+  text-align: center;
+}
+
 @keyframes group-backdrop-in {
   from { opacity: 0; }
   to { opacity: 1; }

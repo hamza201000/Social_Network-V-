@@ -47,6 +47,10 @@ const ICONS: Record<AppNotification["type"], string> = {
   group_invite: "✉️",
   join_request: "🙋",
   group_event: "📅",
+  invite_accepted: "🤝",
+  invite_declined: "✖️",
+  join_accepted: "✅",
+  join_refused: "⛔",
 };
 
 export default function NotificationBell() {

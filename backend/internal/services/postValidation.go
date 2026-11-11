@@ -7,7 +7,7 @@ import (
 )
 
 func ValidatePostRequest(postData models.PostRequest) error {
-	if strings.TrimSpace(postData.Content) == ""  {
+	if strings.TrimSpace(postData.Content) == "" {
 		return errors.New("post content is required")
 	}
 	if postData.Privacy != "public" && postData.Privacy != "almost_private" && postData.Privacy != "private" {

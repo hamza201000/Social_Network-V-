@@ -1,82 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Group, GroupRequest } from "@/types/groupData";
-import { error } from "console";
+import { useState } from "react";
 import Link from "next/link";
+import type { Group, GroupStatus } from "@/types/groupData";
 import { API_BASE_URL } from "@/lib/api";
 
 type CardGroupProps = {
   group: Group;
-  isMember: boolean;
-  isRequested: boolean;
-  onRequestToJoin: (groupId: string) => void;
-  onAcceptRequest: (groupId: string, requestId: string) => void;
-  onDeclineRequest: (groupId: string, requestId: string) => void;
-  onInvite: (groupId: string, username: string) => void;
+  onStatusChange: (groupId: Group["id"], status: GroupStatus, notice: string) => void;
 };
 
-function RequestRow({
-  request,
-  onAccept,
-  onDecline,
-}: {
-  request: GroupRequest;
-  onAccept: () => void;
-  onDecline: () => void;
-}) {
-  return (
-    <li className="group-request-row">
-      <span className="group-request-avatar" aria-hidden="true">
-        {request.username.slice(0, 1).toUpperCase()}
-      </span>
-      <span className="group-request-name">@{request.username}</span>
-      <button className="group-request-action group-accept-action" onClick={onAccept} type="button">
-        Accept
-      </button>
-      <button className="group-request-action group-decline-action" onClick={onDecline} type="button">
-        Decline
-      </button>
-    </li>
-  );
-}
+export default function CardGroup({ group, onStatusChange }: CardGroupProps) {
+  const [busy, setBusy] = useState(false);
+  const isOwner = group.my_status === "admin";
 
-export default function CardGroup({
-  group,
-  isMember,
-  isRequested,
-  onAcceptRequest,
-  onDeclineRequest,
-  onInvite,
-}: CardGroupProps) {
-  const [inviteUsername, setInviteUsername] = useState("");
-  const [inviteMessage, setInviteMessage] = useState("");
-  const isOwner = group.admin_name === "You";
-
-  function handleInvite(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const username = inviteUsername.trim().replace(/^@/, "");
-    if (!username) return;
-    onInvite(group.id, username);
-    setInviteMessage(`Invite sent to @${username}`);
-    setInviteUsername("");
-  }
-  const onRequestToJoin = async (groupId: string) => {
+  async function call(path: string, body?: object) {
+    setBusy(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/groups/${groupId}/join`, {
-        method: "GET",
+      const response = await fetch(`${API_BASE_URL}/api/groups/${group.id}/${path}`, {
+        method: "POST",
         credentials: "include",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
       });
-      if (response.ok) {
-        setInviteMessage(`Join to group has been send`);
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string; message?: string; data?: { status?: GroupStatus } }
+        | null;
+      if (!response.ok) {
+        onStatusChange(group.id, group.my_status, data?.error || "Something went wrong.");
+        return;
       }
-    } catch (err) {
-      console.log("error join group ", err)
+      onStatusChange(group.id, data?.data?.status ?? group.my_status, data?.message ?? "");
+    } catch {
+      onStatusChange(group.id, group.my_status, "Could not reach the server.");
+    } finally {
+      setBusy(false);
     }
   }
 
+  // the card is a link: buttons inside it must not navigate
+  function action(event: React.MouseEvent, run: () => void) {
+    event.preventDefault();
+    event.stopPropagation();
+    run();
+  }
+
   return (
-    <Link href={`group/${group.id}`} >
+    <Link href={`group/${group.id}`}>
       <article className="group-card">
         <div className="group-card-content">
           <div className="group-card-title-row">
@@ -88,37 +58,52 @@ export default function CardGroup({
             <span className="group-member-avatars" aria-hidden="true">
               <span>✦</span><span>●</span><span>◆</span>
             </span>
-            <span>{group.memberCount} members</span>
+            <span>
+              {group.member_count} member{group.member_count === 1 ? "" : "s"}
+            </span>
             <span className="group-meta-dot" aria-hidden="true">·</span>
             <span>by {group.admin_name}</span>
           </div>
 
           <div className="group-card-footer">
-            {isOwner || isMember ? (
+            {group.my_status === "admin" || group.my_status === "member" ? (
               <span className="group-member-status">
                 <span aria-hidden="true">✓</span> {isOwner ? "Your group" : "Member"}
               </span>
-            ) : isRequested ? (
+            ) : group.my_status === "pending" ? (
               <button className="group-secondary-button" type="button" disabled>
                 Request pending
               </button>
+            ) : group.my_status === "invited" ? (
+              <>
+                <button
+                  className="group-primary-button group-join-button"
+                  type="button"
+                  disabled={busy}
+                  onClick={(e) => action(e, () => void call("invitation", { accept: true }))}
+                >
+                  Accept invite
+                </button>
+                <button
+                  className="group-secondary-button"
+                  type="button"
+                  disabled={busy}
+                  onClick={(e) => action(e, () => void call("invitation", { accept: false }))}
+                >
+                  Decline
+                </button>
+              </>
             ) : (
               <button
                 className="group-primary-button group-join-button"
-                onClick={() => onRequestToJoin(group.id)}
                 type="button"
+                disabled={busy}
+                onClick={(e) => action(e, () => void call("join"))}
               >
                 Request to join <span aria-hidden="true">→</span>
               </button>
             )}
-            {/* {group.requests.length > 0 && (
-            <span className="group-pending-count">
-              {group.requests.length} request{group.requests.length === 1 ? "" : "s"}
-            </span>
-          )} */}
           </div>
-
-         
         </div>
       </article>
     </Link>

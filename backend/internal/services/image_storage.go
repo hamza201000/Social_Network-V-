@@ -66,7 +66,7 @@ func (storage *ImageStorage) Save(source io.Reader, contentType string) (string,
 }
 
 func (storage *ImageStorage) Open(filename string) (*os.File, os.FileInfo, error) {
-	
+
 	path := filepath.Join(storage.uploadDir, filename)
 	file, err := os.Open(path)
 	if err != nil {
@@ -96,6 +96,6 @@ func (storage *ImageStorage) Delete(filename string) error {
 }
 
 func ValidImageFilename(filename string) bool {
-	
+
 	return imageFilenamePattern.MatchString(filename)
 }

@@ -7,3 +7,9 @@ node_modules/
 # Next.js
 .next/
 **/.next/
+
+# Claude Code
+CLAUDE.md
+**/CLAUDE.md
+.claude/
+**/.claude/

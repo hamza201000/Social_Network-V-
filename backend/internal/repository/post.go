@@ -4,7 +4,8 @@ import (
 	"backend/internal/models"
 	"fmt"
 )
-
+const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.image_path, p.privacy, p.group_id, p.created_at
+	FROM posts p JOIN users u ON u.id = p.user_id`
 func (repo *UserRepository) CreatePost(userID int64, post models.PostRequest) (int64, error) {
 	transaction, err := repo.db.Begin()
 	if err != nil {
@@ -42,21 +43,29 @@ func (repo *UserRepository) CreatePost(userID int64, post models.PostRequest) (i
 	return postID, nil
 }
 
+// postVisibleTo returns a SQL condition that is true when the viewer (the SQL
+// parameter named by v, e.g. "$2") may see post p:
+//   - group posts: only the group admin and members
+//   - other posts: public, own post, almost_private for followers, private for chosen users
+func postVisibleTo(v string) string {
+	return `(CASE WHEN p.group_id != 0 THEN (
+			EXISTS (SELECT 1 FROM groups vg WHERE vg.id = p.group_id AND vg.admin_id = ` + v + `)
+			OR EXISTS (SELECT 1 FROM members_gp vm WHERE vm.group_id = p.group_id AND vm.user_id = ` + v + `)
+		) ELSE (
+			p.privacy = 'public' OR p.user_id = ` + v + `
+			OR (p.privacy = 'almost_private' AND EXISTS (
+				SELECT 1 FROM followers vf WHERE vf.follower_id = ` + v + ` AND vf.following_target_id = p.user_id))
+			OR (p.privacy = 'private' AND EXISTS (
+				SELECT 1 FROM post_allowed_users va WHERE va.post_id = p.id AND va.user_id = ` + v + `))
+		) END)`
+}
+
 func (repo *UserRepository) CanViewPost(postID, viewerID int64) (bool, error) {
 	var allowed int
 	err := repo.db.QueryRow(`
 		SELECT EXISTS (
-			SELECT 1 FROM posts p
-			WHERE p.id = ? AND (
-				p.privacy = 'public' OR p.user_id = ? OR
-				(p.privacy = 'almost_private' AND EXISTS (
-					SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id
-				)) OR
-				(p.privacy = 'private' AND EXISTS (
-					SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?
-				))
-			)
-		)`, postID, viewerID, viewerID, viewerID).Scan(&allowed)
+			SELECT 1 FROM posts p WHERE p.id = $1 AND `+postVisibleTo("$2")+`
+		)`, postID, viewerID).Scan(&allowed)
 	return allowed == 1, err
 }
 
@@ -83,18 +92,8 @@ func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) 
 
 func (repo *UserRepository) GetPostByUsername(username string, viewerID int64) ([]models.PostData, error) {
 	var post models.PostData
-	rows, err := repo.db.Query(postQuery+` WHERE u.username = $1 
-	AND (p.privacy = 'public' 
-		OR p.user_id = $2 
-		OR
-		(p.privacy = 'almost_private' AND EXISTS (
-			SELECT 1 FROM followers f WHERE f.follower_id = $2 
-			AND f.following_target_id = p.user_id)) 
-		OR
-		(p.privacy = 'private' AND EXISTS (
-			SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id 
-			AND a.user_id = $2))
-		)`,
+	// group posts only show up for members of that group
+	rows, err := repo.db.Query(postQuery+` WHERE u.username = $1 AND `+postVisibleTo("$2"),
 		username, viewerID)
 
 	if err != nil {
@@ -126,8 +125,7 @@ func (repo *UserRepository) GetPostByUsername(username string, viewerID int64) (
 	return postList, nil
 }
 
-const postQuery = `SELECT p.id, p.user_id, u.username, p.content, p.image_path, p.privacy, p.group_id, p.created_at
-	FROM posts p JOIN users u ON u.id = p.user_id`
+
 
 func (repo *UserRepository) ValidatePrivateFollowers(userID int64, followerIDs []int64) error {
 	for _, followerID := range followerIDs {

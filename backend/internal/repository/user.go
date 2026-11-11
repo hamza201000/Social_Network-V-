@@ -6,7 +6,13 @@ import (
 	"fmt"
 )
 
+// DefaultAvatar is the image (in database/upload) used for users who didn't upload one.
+const DefaultAvatar = "icon_user.png"
+
 func (repo *UserRepository) RegisterUser(user models.RegisterRequest) error {
+	if user.AvatarUrl == "" {
+		user.AvatarUrl = DefaultAvatar
+	}
 	transaction, err := repo.db.Begin()
 	if err != nil {
 		return err
@@ -35,39 +41,19 @@ func (repo *UserRepository) ImageReferenced(filename string) (bool, error) {
 	return referenced, err
 }
 
+// CanViewImage reports whether the viewer may load an uploaded file:
+// avatars are public, post and comment images follow the visibility of their post.
 func (repo *UserRepository) CanViewImage(filename string, viewerID int64) (bool, error) {
 	var allowed bool
 	err := repo.db.QueryRow(`
 		SELECT EXISTS (
-			SELECT 1 FROM users WHERE avatar_url = ?
+			SELECT 1 FROM users WHERE avatar_url = $1
 			UNION ALL
-			SELECT 1 FROM posts p
-			WHERE p.image_path = ? AND (
-				p.group_id != 0 OR p.privacy = 'public' OR p.user_id = ? OR
-				(p.privacy = 'almost_private' AND EXISTS (
-					SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id
-				)) OR
-				(p.privacy = 'private' AND EXISTS (
-					SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?
-				))
-			)
+			SELECT 1 FROM posts p WHERE p.image_path = $1 AND `+postVisibleTo("$2")+`
 			UNION ALL
-			SELECT 1 FROM comments c
-			JOIN posts p ON p.id = c.post_id
-			WHERE c.image_path = ? AND (
-				p.privacy = 'public' OR p.user_id = ? OR
-				(p.privacy = 'almost_private' AND EXISTS (
-					SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id
-				)) OR
-				(p.privacy = 'private' AND EXISTS (
-					SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?
-				))
-			)
-		)`,
-		filename,
-		filename, viewerID, viewerID, viewerID,
-		filename, viewerID, viewerID, viewerID,
-	).Scan(&allowed)
+			SELECT 1 FROM comments c JOIN posts p ON p.id = c.post_id
+			WHERE c.image_path = $1 AND `+postVisibleTo("$2")+`
+		)`, filename, viewerID).Scan(&allowed)
 	return allowed, err
 }
 
@@ -300,7 +286,6 @@ func (repo *UserRepository) Following(follower_id int64) ([]models.ProfileConnec
 	}
 	return followers, nil
 }
-
 
 func (repo *UserRepository) SearchUser(name_sh string) ([]models.User, error) {
 	query := `

@@ -199,7 +199,7 @@ func (handler *ChatHandler) saveMessage(senderID int64, request models.NewMessag
 }
 
 func authenticatedUserID(r *http.Request) (int64, bool) {
-	
+
 	userID, ok := r.Context().Value("user_id").(int64)
 	return userID, ok && userID > 0
 }

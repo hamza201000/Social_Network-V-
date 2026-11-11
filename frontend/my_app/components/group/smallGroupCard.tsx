@@ -7,7 +7,7 @@ export default function SmallCard({ groupData }: { groupData: Group }) {
         <article className="group-search-result">
             <span
                 className="group-search-result-mark"
-                style={{ backgroundColor: groupData.color }}
+                style={{ backgroundColor: "#c3dfd2" }}
                 aria-hidden="true"
             >
                 {groupData.title.trim().slice(0, 1).toUpperCase() || "G"}
@@ -16,7 +16,7 @@ export default function SmallCard({ groupData }: { groupData: Group }) {
                 <h3>{groupData.title}</h3>
                 <p>{groupData.description}</p>
                 <div className="group-search-result-meta">
-                    <span>{groupData.memberCount} members</span>
+                    <span>{groupData.member_count} members</span>
                     <span aria-hidden="true">·</span>
                     <span>by {groupData.admin_name}</span>
                 </div>

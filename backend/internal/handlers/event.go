@@ -55,7 +55,7 @@ func (userHandler UserHandler) CreateEvent(w http.ResponseWriter, r *http.Reques
 
 // notifyGroupEvent tells every member of the group (except the creator) about a new event.
 func (userHandler UserHandler) notifyGroupEvent(groupID, eventID, creatorID int64, eventTitle string) {
-	group, err := userHandler.UserRepo.GetGroup(groupID)
+	group, err := userHandler.UserRepo.GetGroup(creatorID, groupID)
 	if err != nil {
 		log.Printf("event notification: get group %d: %v", groupID, err)
 		return

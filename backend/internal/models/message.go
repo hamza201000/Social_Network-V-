@@ -14,11 +14,11 @@ type DataMessage struct {
 }
 
 type Client struct {
-	UserID   int64        `json:"user_id"`
-	Username string       `json:"username"`
-	Avatar_url string   	`json:"avatar_url"`
-	IsOnline bool         `json:"is_online"`
-	LastMsg  *DataMessage `json:"last_msg"`
+	UserID     int64        `json:"user_id"`
+	Username   string       `json:"username"`
+	Avatar_url string       `json:"avatar_url"`
+	IsOnline   bool         `json:"is_online"`
+	LastMsg    *DataMessage `json:"last_msg"`
 }
 
 type NewMessage struct {
