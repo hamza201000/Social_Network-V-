@@ -1,7 +1,9 @@
 import type { Group } from "@/types/groupData";
+import Link from "next/link";
 
 export default function SmallCard({ groupData }: { groupData: Group }) {
     return (
+        <Link href={`/group/${groupData.id}`} className="group-search-result-link">
         <article className="group-search-result">
             <span
                 className="group-search-result-mark"
@@ -21,5 +23,7 @@ export default function SmallCard({ groupData }: { groupData: Group }) {
             </div>
             <span className="group-search-result-arrow" aria-hidden="true">↗</span>
         </article>
-    );
+    </Link>
+);
 }
+

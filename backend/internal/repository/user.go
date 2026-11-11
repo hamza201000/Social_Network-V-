@@ -121,12 +121,10 @@ func (repo *UserRepository) GetUserBySession(sessionID string) (models.User, err
 	return user, nil
 }
 func (repo *UserRepository) DeleteSession(sessionID string) error {
-
 	query := `
 		DELETE FROM sessions
-		WHERE session_id = $1
+		WHERE token = $1
 	`
-
 	_, err := repo.db.Exec(query, sessionID)
 	if err != nil {
 		fmt.Println("error deleting session:", err)
@@ -139,7 +137,6 @@ func (repo *UserRepository) DeleteSession(sessionID string) error {
 func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (models.User, error) {
 
 	var user models.User
-	fmt.Println("user_id", user_id)
 	query := `
 		SELECT
 			u.id,
@@ -149,11 +146,11 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 			u.email,
 			u.avatar_url,
 			EXISTS (
-          			SELECT 1
-          			FROM followers f
-          			WHERE f.follower_id = $1
-            		AND f.following_target_id = u.id
-          		) AS followed_by_me
+				SELECT 1 FROM followers f
+				WHERE f.follower_id = $1 AND f.following_target_id = u.id
+			) AS followed_by_me,
+			(SELECT COUNT(*) FROM followers f WHERE f.following_target_id = u.id) AS followers_count,
+			(SELECT COUNT(*) FROM followers f WHERE f.follower_id = u.id) AS following_count
 		FROM users u
 		WHERE u.username = $2
 	`
@@ -170,6 +167,8 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 		&user.Email,
 		&user.AvatarUrl,
 		&user.FollowedByMe,
+		&user.Followers_count,
+		&user.Following_count,
 	)
 
 	if err != nil {
@@ -224,7 +223,9 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 	return user, nil
 }
 
-func (repo *UserRepository) FollowUser(followerID int64, followingTargetID int64) error {
+// FollowUser toggles a follow. It returns true when the user is now followed,
+// false when the call removed an existing follow.
+func (repo *UserRepository) FollowUser(followerID int64, followingTargetID int64) (bool, error) {
 	query := `
 		DELETE FROM followers
 		WHERE follower_id = $1 AND following_target_id = $2;
@@ -232,26 +233,25 @@ func (repo *UserRepository) FollowUser(followerID int64, followingTargetID int64
 
 	result, err := repo.db.Exec(query, followerID, followingTargetID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
+	}
+	if affected > 0 {
+		return false, nil // was following -> unfollowed
 	}
 
-	if affected == 0 {
-		_, err = repo.db.Exec(`
-			INSERT INTO followers (follower_id, following_target_id)
-			VALUES ($1, $2)
-		`, followerID, followingTargetID)
-
-		if err != nil {
-			return err
-		}
+	_, err = repo.db.Exec(`
+		INSERT INTO followers (follower_id, following_target_id)
+		VALUES ($1, $2)
+	`, followerID, followingTargetID)
+	if err != nil {
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
 func (repo *UserRepository) Followers(follower_id int64) ([]models.ProfileConnection, error) {
@@ -299,4 +299,54 @@ func (repo *UserRepository) Following(follower_id int64) ([]models.ProfileConnec
 		followers = append(followers, follower)
 	}
 	return followers, nil
+}
+
+
+func (repo *UserRepository) SearchUser(name_sh string) ([]models.User, error) {
+	query := `
+		SELECT
+			u.id,
+			u.first_name,
+			u.last_name,
+			u.username,
+			u.avatar_url,
+			u.about_me,
+			(SELECT COUNT(*) FROM followers f WHERE f.following_target_id = u.id) AS followers_count,
+			(SELECT COUNT(*) FROM followers f WHERE f.follower_id = u.id) AS following_count
+		FROM users u
+		WHERE
+			u.first_name LIKE '%' || $1 || '%'
+			OR u.last_name LIKE '%' || $1 || '%'
+			OR u.username LIKE '%' || $1 || '%'
+			OR (u.first_name || ' ' || u.last_name) LIKE '%' || $1 || '%'
+	`
+	rows, err := repo.db.Query(query, name_sh)
+	if err != nil {
+		fmt.Println("error database:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []models.User{}
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.Id,
+			&user.FirstName,
+			&user.LastName,
+			&user.Username,
+			&user.AvatarUrl,
+			&user.AboutMe,
+			&user.Followers_count,
+			&user.Following_count,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
 }

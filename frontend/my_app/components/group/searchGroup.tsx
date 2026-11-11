@@ -7,38 +7,41 @@ import { Group } from "@/types/groupData";
 import { API_BASE_URL } from "@/lib/api";
 
 
-type SearchGroupProps = {
-  query: string;
-  onQueryChange: (query: string) => void;
-};
-
 export default function SearchGroup() {
   const [query, setQuery] = useState("");
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(false)
   const debouncedQuery = useDebounce(query, 1000);
-  const search = async (q: string) => {
-    try {
-      setLoading(true)
-      const response = await fetch(
-        `${API_BASE_URL}/api/groups/search?q=${encodeURIComponent(q)}`, {
-        credentials: "include",
-      }
-      );
-      const data: Group[] = await response.json();
-      console.log("data shearch", data);
-      setGroups(data)
-    } catch (err) {
-      setLoading(false)
-      throw console.error("error shearch data");
-    } finally {
-      setLoading(false)
-    }
-  }
-  useEffect(() => {
-    if (debouncedQuery.trim()) search(debouncedQuery)
-  }, [debouncedQuery])
+  const isSearching = loading || query.trim() !== debouncedQuery.trim();
 
+  useEffect(() => {
+    const q = debouncedQuery.trim();
+    if (!q) {
+      setGroups([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const search = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `${API_BASE_URL}/api/groups/search?q=${encodeURIComponent(q)}`,
+          { credentials: "include", signal: controller.signal }
+        );
+        const data: Group[] | null = response.ok ? await response.json() : [];
+        setGroups(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        console.error("error searching groups:", err);
+        setGroups([]);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    search();
+    return () => controller.abort();
+  }, [debouncedQuery]);
 
   return (
     <>
@@ -51,19 +54,17 @@ export default function SearchGroup() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-          {query&&<button 
-            onClick={()=>{
-              setQuery("")
-              setGroups([])
-            }}
-          
-          >X</button>}
+          {query && (
+            <button type="button" aria-label="Clear search" onClick={() => setQuery("")}>
+              X
+            </button>
+          )}
         </label>
         {query.trim() && (
           <div className="group-search-results" aria-live="polite">
-            {loading ? (
+            {isSearching ? (
               <p className="group-search-message">Searching groups...</p>
-            ) : groups?.length > 0 ? (
+            ) : groups.length > 0 ? (
               groups.map((group) => <SmallCard key={group.id} groupData={group} />)
             ) : (
               <p className="group-search-message">No matching groups found.</p>

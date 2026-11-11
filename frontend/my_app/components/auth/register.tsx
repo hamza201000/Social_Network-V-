@@ -6,6 +6,8 @@ import { useRef, useState } from "react";
 import "./auth.css"
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api";
+import { useRouter } from 'next/navigation';
+
 export default function RegisterForm() {
 
     const [email, setEmail] = useState("");
@@ -20,6 +22,7 @@ export default function RegisterForm() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const router = useRouter();
     function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0] || null;
         if (file) {
@@ -71,6 +74,11 @@ export default function RegisterForm() {
                 if (error != undefined) {
                     setError(error)
                 }
+            }
+            if (response.status==201)
+            {
+                router.replace('/login');
+                return;                
             }
         } catch (err) {
 

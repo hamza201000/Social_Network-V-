@@ -1,6 +1,7 @@
 package handler
 
 import (
+	chatws "backend/internal/websocket"
 	"backend/internal/models"
 	"backend/internal/repository"
 	"backend/internal/services"
@@ -18,12 +19,14 @@ import (
 type UserHandler struct {
 	UserRepo     *repository.UserRepository
 	ImageStorage *services.ImageStorage
+	Hub          *chatws.Hub // used to push notifications live
 }
 
-func NewUserHandler(userRepo *repository.UserRepository, imageStorage *services.ImageStorage) *UserHandler {
+func NewUserHandler(userRepo *repository.UserRepository, imageStorage *services.ImageStorage, hub *chatws.Hub) *UserHandler {
 	return &UserHandler{
 		UserRepo:     userRepo,
 		ImageStorage: imageStorage,
+		Hub:          hub,
 	}
 }
 
@@ -161,13 +164,9 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 func (userHandler UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	var res models.Res
-	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		SendError(w, http.StatusUnauthorized, "not logged in")
-		return
-	}
-
-	err = userHandler.UserRepo.DeleteSession(cookie.Value)
+	cookie:=r.Context().Value("session_id").(string)
+	fmt.Print("session",cookie)
+	err := userHandler.UserRepo.DeleteSession(cookie)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
@@ -202,6 +201,20 @@ func (userHandler UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	SendJSON(w, http.StatusOK, res)
 }
 
+func (userHandler UserHandler) SearchUser(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("q")
+	if search == "" {
+		SendError(w, http.StatusBadRequest, "wrong data")
+		return
+	}
+	user, err := userHandler.UserRepo.SearchUser(search)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "Failed to retrieve user")
+		return
+	}
+	SendJSON(w, http.StatusOK, user)
+}
+
 func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	username := r.PathValue("username")
 	fmt.Println("userbyusername", username)
@@ -216,12 +229,12 @@ func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Req
 			SendError(w, http.StatusNotFound, "user not found")
 			return
 		}
-
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
 	SendJSON(w, http.StatusOK, user)
 }
+
 func (userHandler UserHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("in")
 	following_target_id := r.URL.Query().Get("user_id")
@@ -231,14 +244,18 @@ func (userHandler UserHandler) FollowUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 	user_id := r.Context().Value("user_id").(int64)
-	err = userHandler.UserRepo.FollowUser(user_id, int64(user_target))
+	followed, err := userHandler.UserRepo.FollowUser(user_id, int64(user_target))
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
+	if followed {
+		userHandler.notify(int64(user_target), user_id, models.NotifNewFollower, 0, 0, "started following you")
+	}
 	res := models.Res{Message: "user followed successfully"}
 	SendJSON(w, http.StatusOK, res)
 }
+
 func (userHandler UserHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 	user_id := r.Context().Value("user_id").(int64)
 	user, err := userHandler.UserRepo.GetMyUserData(user_id)

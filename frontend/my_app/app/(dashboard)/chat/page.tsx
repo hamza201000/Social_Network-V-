@@ -85,6 +85,8 @@ export default function ChatPage() {
       };
       connection.onmessage = (event) => {
         const message: ChatMessage = JSON.parse(event.data);
+        // the same socket also carries notifications: the bell in the top bar handles those
+        if ((message.type as string) === "notification") return;
         if (message.type === "error") {
           setError(message.message);
           return;
@@ -158,7 +160,7 @@ export default function ChatPage() {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/chats/${user.user_id}/messages`,
+        `${API_BASE_URL}/api/chats/${user.user_id}/messages`,
         { credentials: "include" },
       );
       await checkResponse(response);
@@ -196,7 +198,7 @@ export default function ChatPage() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/messages`, {
+      const response = await fetch(`${API_BASE_URL}/api/messages`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -18,6 +18,7 @@ func Routers(userHandler *handler.UserHandler, chatHandler *handler.ChatHandler)
 	}))
 	GroupRouter(mux, userHandler)
 	ChatRouter(mux, userHandler.UserRepo, chatHandler)
+	NotificationRouter(mux, userHandler)
 	middleware.Logging(mux)
 	return mux
 }

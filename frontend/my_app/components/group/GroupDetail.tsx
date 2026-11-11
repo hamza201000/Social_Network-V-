@@ -14,12 +14,21 @@ type GroupDetailProps = {
   groupId: string;
 };
 
-type Member = {
-  name: string;
+type InviteStatus = "none" | "invited" | "pending" | "member";
+
+type InvitableUser = {
+  user_id: number;
+  first_name: string;
+  last_name: string;
   username: string;
-  role: string;
-  initials: string;
-  color: string;
+  avatar_url: string;
+  status: InviteStatus;
+};
+
+const statusLabels: Record<Exclude<InviteStatus, "none">, string> = {
+  invited: "Invited",
+  pending: "Requested",
+  member: "Member",
 };
 
 type GroupTab = "posts" | "events";
@@ -36,14 +45,6 @@ const sampleGroup: Group = {
   invitedUsers: [],
 };
 
-const sampleMembers: Member[] = [
-  { name: "Maya Chen", username: "mayatreks", role: "Organizer", initials: "MC", color: "#d7e9d8" },
-  { name: "Jordan Lee", username: "jordangoesoutside", role: "Member", initials: "JL", color: "#f3dfc9" },
-  { name: "Sam Rivera", username: "samonthetrail", role: "Member", initials: "SR", color: "#dce4f3" },
-  { name: "Avery Brooks", username: "averyb", role: "Member", initials: "AB", color: "#f2dada" },
-  { name: "Noah Patel", username: "noahfindsviews", role: "Member", initials: "NP", color: "#eee4bd" },
-];
-
 function isGroup(value: unknown): value is Group {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<Group>;
@@ -53,7 +54,11 @@ function isGroup(value: unknown): value is Group {
 export default function GroupDetail({ groupId }: GroupDetailProps) {
   const [group, setGroup] = useState(sampleGroup);
   const [activeTab, setActiveTab] = useState<GroupTab>("posts");
-  const [membersOpen, setMembersOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invitables, setInvitables] = useState<InvitableUser[]>([]);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+  const [sendingTo, setSendingTo] = useState<number | null>(null);
   const [eventsCount, setEventsCount] = useState(0);
   const [eventsVersion, setEventsVersion] = useState(0);
   const handleEventsLoaded = useCallback((loadedEvents: GroupEvent[]) => {
@@ -89,10 +94,69 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
   }, [groupId]);
 
   useEffect(() => {
-    if (!membersOpen) return;
+    if (!inviteOpen) return;
+    let cancelled = false;
+
+    async function loadInvitables() {
+      setInviteLoading(true);
+      setInviteError("");
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/groups/${encodeURIComponent(groupId)}/invitable`,
+          { credentials: "include" },
+        );
+        const data: unknown = await response.json().catch(() => null);
+        if (cancelled) return;
+        if (!response.ok) {
+          const message = (data as { error?: string } | null)?.error;
+          setInviteError(message || "Could not load your followers.");
+          setInvitables([]);
+          return;
+        }
+        setInvitables(Array.isArray(data) ? (data as InvitableUser[]) : []);
+      } catch {
+        if (!cancelled) setInviteError("Could not load your followers.");
+      } finally {
+        if (!cancelled) setInviteLoading(false);
+      }
+    }
+
+    void loadInvitables();
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteOpen, groupId]);
+
+  async function sendInvite(userId: number) {
+    setSendingTo(userId);
+    setInviteError("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/groups/${encodeURIComponent(groupId)}/invite`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (!response.ok && response.status !== 409) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        setInviteError(data?.error || "Could not send the invitation.");
+        return;
+      }
+      setInvitables((users) =>
+        users.map((user) => (user.user_id === userId ? { ...user, status: "invited" } : user)),
+      );
+    } catch {
+      setInviteError("Could not send the invitation.");
+    } finally {
+      setSendingTo(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!inviteOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setMembersOpen(false);
+      if (event.key === "Escape") setInviteOpen(false);
     }
 
     const previousOverflow = document.body.style.overflow;
@@ -102,7 +166,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [membersOpen]);
+  }, [inviteOpen]);
 
   return (
     <main className="group-detail-page">
@@ -113,13 +177,6 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
             <h1>{group.title}</h1>
             <p className="group-detail-description">{group.description}</p>
             <div className="group-detail-meta">
-              <span className="group-member-stack" aria-hidden="true">
-                {sampleMembers.slice(0, 3).map((member) => (
-                  <span key={member.username} style={{ backgroundColor: member.color }}>
-                    {member.initials.slice(0, 1)}
-                  </span>
-                ))}
-              </span>
               <span>
                 
                   {group.memberCount.toLocaleString()}
@@ -128,8 +185,8 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
               <span>Started by {group.admin_name}</span>
             </div>
           </div>
-          <button className="group-view-members" type="button" onClick={() => setMembersOpen(true)}>
-            <span aria-hidden="true">＋</span> View members
+          <button className="group-view-members" type="button" onClick={() => setInviteOpen(true)}>
+            <span aria-hidden="true">＋</span> Invite people
           </button>
         </div>
       </header>
@@ -189,49 +246,81 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
         </div>
       </section>
 
-      {membersOpen && (
+      {inviteOpen && (
         <div
           className="group-modal-backdrop"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setMembersOpen(false);
+            if (event.target === event.currentTarget) setInviteOpen(false);
           }}
         >
           <section
             className="group-members-dialog"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="group-members-title"
+            aria-labelledby="group-invite-title"
           >
             <div className="group-dialog-heading">
               <div>
-                <p className="group-detail-eyebrow">The people behind it</p>
-                <h2 id="group-members-title">Members</h2>
+                <p className="group-detail-eyebrow">Grow the group</p>
+                <h2 id="group-invite-title">Invite people</h2>
               </div>
               <button
                 className="group-dialog-close"
                 type="button"
-                aria-label="Close members dialog"
-                onClick={() => setMembersOpen(false)}
+                aria-label="Close invite dialog"
+                onClick={() => setInviteOpen(false)}
               >
                 ×
               </button>
             </div>
-            <p className="group-dialog-count">{group.memberCount.toLocaleString()} curious people, and counting.</p>
-            <ul className="group-members-list">
-              {sampleMembers.map((member) => (
-                <li key={member.username}>
-                  <span className="group-member-avatar" style={{ backgroundColor: member.color }} aria-hidden="true">
-                    {member.initials}
-                  </span>
-                  <span className="group-member-identity">
-                    <strong>{member.name}</strong>
-                    <span>@{member.username}</span>
-                  </span>
-                  {member.role === "Organizer" && <span className="group-organizer-badge">Organizer</span>}
-                </li>
-              ))}
-            </ul>
+            <p className="group-dialog-count">Invite your followers and the people you follow.</p>
+            {inviteError && (
+              <p className="group-invite-error" role="alert">
+                {inviteError}
+              </p>
+            )}
+            {inviteLoading ? (
+              <p className="group-invite-empty">Loading…</p>
+            ) : invitables.length === 0 && !inviteError ? (
+              <p className="group-invite-empty">No followers or followings to invite yet.</p>
+            ) : (
+              <ul className="group-members-list">
+                {invitables.map((user) => {
+                  const fullName = `${user.first_name} ${user.last_name}`.trim() || user.username;
+                  return (
+                    <li key={user.user_id}>
+                      <span className="group-member-avatar" aria-hidden="true">
+                        {user.avatar_url ? (
+                          <img
+                            src={`${API_BASE_URL}/api/images/${encodeURIComponent(user.avatar_url)}`}
+                            alt=""
+                          />
+                        ) : (
+                          fullName.slice(0, 1).toUpperCase()
+                        )}
+                      </span>
+                      <span className="group-member-identity">
+                        <strong>{fullName}</strong>
+                        <span>@{user.username}</span>
+                      </span>
+                      {user.status === "none" ? (
+                        <button
+                          className="group-invite-button"
+                          type="button"
+                          disabled={sendingTo === user.user_id}
+                          onClick={() => void sendInvite(user.user_id)}
+                        >
+                          {sendingTo === user.user_id ? "Sending…" : "Invite"}
+                        </button>
+                      ) : (
+                        <span className="group-organizer-badge">{statusLabels[user.status]}</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         </div>
       )}

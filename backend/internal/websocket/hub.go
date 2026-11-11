@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"backend/internal/models"
 	"sync"
 	"time"
 
@@ -13,7 +12,8 @@ type Client struct {
 	writeMu    sync.Mutex
 }
 
-func (client *Client) Send(message models.DataMessage) error {
+// Send writes any JSON value (chat message, notification, error) to the connection.
+func (client *Client) Send(message any) error {
 	client.writeMu.Lock()
 	defer client.writeMu.Unlock()
 
@@ -63,7 +63,7 @@ func (hub *Hub) IsOnline(userID int64) bool {
 	return len(hub.clients[userID]) > 0
 }
 
-func (hub *Hub) SendToUser(userID int64, message models.DataMessage) error {
+func (hub *Hub) SendToUser(userID int64, message any) error {
 	hub.mu.RLock()
 	clients := make([]*Client, 0, len(hub.clients[userID]))
 	for client := range hub.clients[userID] {

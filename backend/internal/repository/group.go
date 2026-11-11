@@ -60,22 +60,95 @@ func (repo *UserRepository) GetGroups(user_id int64) ([]models.Group, error) {
 	}
 	return groups, nil
 }
-func (repo *UserRepository) InviteUsrGp(user_id, group_id int64) (int64, error) {
+// IsGroupMember reports whether the user is the group admin or a member.
+func (repo *UserRepository) IsGroupMember(user_id, group_id int64) (bool, error) {
+	var ok bool
+	err := repo.db.QueryRow(`
+		SELECT EXISTS (SELECT 1 FROM groups WHERE id = $1 AND admin_id = $2)
+		    OR EXISTS (SELECT 1 FROM members_gp WHERE group_id = $1 AND user_id = $2)
+	`, group_id, user_id).Scan(&ok)
+	return ok, err
+}
 
-	return 0, nil
+// IsConnected reports whether the two users follow each other in either direction.
+func (repo *UserRepository) IsConnected(a, b int64) (bool, error) {
+	var ok bool
+	err := repo.db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM followers
+			WHERE (follower_id = $1 AND following_target_id = $2)
+			   OR (follower_id = $2 AND following_target_id = $1)
+		)
+	`, a, b).Scan(&ok)
+	return ok, err
+}
+
+// InvitableUsers lists the followers and followees of user_id together with
+// their current status in the group.
+func (repo *UserRepository) InvitableUsers(user_id, group_id int64) ([]models.InvitableUser, error) {
+	rows, err := repo.db.Query(`
+		SELECT u.id, u.first_name, u.last_name, u.username, u.avatar_url,
+			CASE
+				WHEN EXISTS (SELECT 1 FROM groups g WHERE g.id = $2 AND g.admin_id = u.id)
+				  OR EXISTS (SELECT 1 FROM members_gp m WHERE m.group_id = $2 AND m.user_id = u.id)
+					THEN 'member'
+				ELSE COALESCE((
+					SELECT s.member_status FROM members_status s
+					WHERE s.group_id = $2 AND s.user_id = u.id
+					ORDER BY s.created_at DESC, s.id DESC LIMIT 1
+				), 'none')
+			END AS status
+		FROM users u
+		WHERE u.id != $1 AND u.id IN (
+			SELECT follower_id FROM followers WHERE following_target_id = $1
+			UNION
+			SELECT following_target_id FROM followers WHERE follower_id = $1
+		)
+		ORDER BY u.username
+	`, user_id, group_id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []models.InvitableUser{}
+	for rows.Next() {
+		var u models.InvitableUser
+		if err := rows.Scan(&u.UserId, &u.FirstName, &u.LastName, &u.Username, &u.AvatarUrl, &u.Status); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// InviteUsrGp records an invitation for user_id to join group_id.
+// It returns false if the user is already a member or already has an
+// invitation or join request.
+func (repo *UserRepository) InviteUsrGp(user_id, group_id int64) (bool, error) {
+	result, err := repo.db.Exec(`
+		INSERT INTO members_status (group_id, user_id, member_status)
+		SELECT $1, $2, 'invited'
+		WHERE NOT EXISTS (SELECT 1 FROM groups WHERE id = $1 AND admin_id = $2)
+		  AND NOT EXISTS (SELECT 1 FROM members_gp WHERE group_id = $1 AND user_id = $2)
+		  AND NOT EXISTS (
+			SELECT 1 FROM members_status
+			WHERE group_id = $1 AND user_id = $2 AND member_status IN ('invited', 'pending')
+		  )
+	`, group_id, user_id)
+	if err != nil {
+		return false, err
+	}
+	n, err := result.RowsAffected()
+	return n > 0, err
 }
 
 func (repo *UserRepository) JoinUsrGroup(user_id, group_id int64) error {
-
-	query := `
-		INSERT INTO members_status (group_id,user_id)
-		VALUES(1$,2$)
-	`
-	_, err := repo.db.Exec(query, user_id, group_id)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := repo.db.Exec(`
+		INSERT INTO members_status (group_id, user_id)
+		VALUES ($1, $2)
+	`, group_id, user_id)
+	return err
 }
 
 func (repo *UserRepository) SearchGroup(name_sh string) ([]models.Group, error) {

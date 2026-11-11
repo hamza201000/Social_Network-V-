@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,7 +49,26 @@ func (userHandler UserHandler) CreateEvent(w http.ResponseWriter, r *http.Reques
 		SendError(w, http.StatusInternalServerError, "Failed to create event")
 		return
 	}
+	userHandler.notifyGroupEvent(groupID, eventID, userID, event.Title)
 	SendJSON(w, http.StatusCreated, models.Res{Message: "Event created successfully", Data: map[string]int64{"id": eventID}})
+}
+
+// notifyGroupEvent tells every member of the group (except the creator) about a new event.
+func (userHandler UserHandler) notifyGroupEvent(groupID, eventID, creatorID int64, eventTitle string) {
+	group, err := userHandler.UserRepo.GetGroup(groupID)
+	if err != nil {
+		log.Printf("event notification: get group %d: %v", groupID, err)
+		return
+	}
+	memberIDs, err := userHandler.UserRepo.GroupMemberIDs(groupID)
+	if err != nil {
+		log.Printf("event notification: get members of group %d: %v", groupID, err)
+		return
+	}
+	message := fmt.Sprintf("created the event %q in %q", eventTitle, group.Title)
+	for _, memberID := range memberIDs {
+		userHandler.notify(memberID, creatorID, models.NotifGroupEvent, groupID, eventID, message)
+	}
 }
 
 func (userHandler UserHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {

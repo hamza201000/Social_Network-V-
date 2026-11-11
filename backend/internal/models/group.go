@@ -35,3 +35,18 @@ type Event struct {
 type EventVote struct {
 	Response string `json:"response"`
 }
+
+type InviteRequest struct {
+	UserId int64 `json:"user_id"`
+}
+
+// InvitableUser is a follower or followee of the current user,
+// with their relation to a given group.
+type InvitableUser struct {
+	UserId    int64  `json:"user_id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Username  string `json:"username"`
+	AvatarUrl string `json:"avatar_url"`
+	Status    string `json:"status"` // "none", "invited", "pending", "member"
+}

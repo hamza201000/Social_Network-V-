@@ -1,0 +1,214 @@
+/* ---------- Notification bell (top bar) ---------- */
+
+.notif-wrapper {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.notif-bell {
+  position: relative;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(37, 111, 90, 0.18);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.notif-bell:hover,
+.notif-bell[aria-expanded="true"] {
+  border-color: var(--accent, #256f5a);
+  background: var(--surface-soft, #eef6f2);
+}
+
+.notif-bell-ring > span:first-child {
+  display: inline-block;
+  animation: notif-ring 0.9s ease;
+}
+
+@keyframes notif-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(16deg); }
+  30% { transform: rotate(-14deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-6deg); }
+  75% { transform: rotate(3deg); }
+}
+
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid var(--surface, #fff);
+  border-radius: 999px;
+  background: #d93f3f;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* ---------- Dropdown ---------- */
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: min(360px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid #dfe8e1;
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  box-shadow: 0 16px 38px rgba(20, 32, 28, 0.15);
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2ee;
+}
+
+.notif-header h2 {
+  margin: 0;
+  color: #20372c;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.notif-mark-all {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--accent, #256f5a);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notif-mark-all:hover {
+  background: var(--surface-soft, #eef6f2);
+}
+
+.notif-list {
+  max-height: min(420px, 65vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+
+.notif-item {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 40px minmax(0, 1fr) 10px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.notif-item:hover {
+  background: #f7faf7;
+}
+
+.notif-unread {
+  background: rgba(220, 238, 232, 0.55);
+}
+
+.notif-avatar {
+  position: relative;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft, #dceee8);
+  color: var(--accent-strong, #174f40);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+}
+
+.notif-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.notif-type-icon {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 2px solid var(--surface, #fff);
+  border-radius: 50%;
+  background: var(--surface, #fff);
+  font-family: initial;
+  font-size: 0.65rem;
+}
+
+.notif-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notif-text {
+  color: #3a4a42;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.notif-text strong {
+  color: #20372c;
+}
+
+.notif-time {
+  color: #829087;
+  font-size: 0.68rem;
+}
+
+.notif-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent, #256f5a);
+}
+
+.notif-message {
+  margin: 0;
+  padding: 22px 14px;
+  color: #718078;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.notif-error {
+  padding-block: 10px;
+  color: #b42318;
+}

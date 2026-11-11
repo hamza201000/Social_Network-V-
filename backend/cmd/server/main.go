@@ -20,9 +20,11 @@ func main() {
 		log.Fatalf("could not determine backend root: %v", err)
 	}
 	imageStorage := services.NewImageStorage(backendRoot)
-	userHandler := handler.NewUserHandler(userRepo, imageStorage)
+	// one hub shared by chat and notifications: a user has one set of websocket connections
+	hub := chatws.NewHub()
+	userHandler := handler.NewUserHandler(userRepo, imageStorage, hub)
 	messageRepo := repository.NewMessageRepository(db)
-	chatHandler := handler.NewChatHandler(messageRepo, chatws.NewHub())
+	chatHandler := handler.NewChatHandler(messageRepo, hub)
 
 	if err := config.Config(userHandler, chatHandler); err != nil {
 		log.Fatalf("server stopped: %v", err)

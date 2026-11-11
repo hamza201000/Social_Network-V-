@@ -118,45 +118,7 @@ export default function CardGroup({
           )} */}
           </div>
 
-          {isOwner && (
-            <div className="group-owner-tools">
-              <form className="group-invite-form" onSubmit={handleInvite}>
-                <label className="group-field" htmlFor={`invite-${group.id}`}>Invite someone</label>
-                <div className="group-invite-controls">
-                  <span aria-hidden="true">@</span>
-                  <input
-                    id={`invite-${group.id}`}
-                    autoComplete="off"
-                    placeholder="username"
-                    value={inviteUsername}
-                    onChange={(event) => setInviteUsername(event.target.value)}
-                  />
-                  <button className="group-invite-button" type="submit" disabled={!inviteUsername.trim()}>
-                    Invite
-                  </button>
-                </div>
-                {/* {inviteMessage && <p className="group-inline-message" role="status">{inviteMessage}</p>}
-              {group.invitedUsers.length > 0 && (
-                <p className="group-invited-list">Invited: {group.invitedUsers.map((user) => `@${user}`).join(", ")}</p>
-              )} */}
-              </form>
-              {/* {group.requests.length > 0 && (
-              <section className="group-requests" aria-label="Membership requests">
-                <h4>Membership requests <span>{group.requests.length}</span></h4>
-                <ul>
-                  {group.requests.map((request) => (
-                    <RequestRow
-                      key={request.id}
-                      request={request}
-                      onAccept={() => onAcceptRequest(group.id, request.id)}
-                      onDecline={() => onDeclineRequest(group.id, request.id)}
-                    />
-                  ))}
-                </ul>
-              </section>
-            )} */}
-            </div>
-          )}
+         
         </div>
       </article>
     </Link>
