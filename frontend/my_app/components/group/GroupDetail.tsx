@@ -8,6 +8,7 @@ import CreatePostGp from "../post/createPostGp";
 import Post from "../post/post";
 import CreateEvent from "@/components/events/createEvent";
 import GetEvents from "@/components/events/GetEvents";
+import GroupChat from "./GroupChat";
 import { API_BASE_URL, imageUrl } from "@/lib/api";
 import { isGroupUpdate, subscribe } from "@/lib/realtime";
 
@@ -32,7 +33,7 @@ const statusLabels: Record<Exclude<InviteStatus, "none">, string> = {
   member: "Member",
 };
 
-type GroupTab = "posts" | "events";
+type GroupTab = "posts" | "events" | "chat";
 type Dialog = "members" | "invite" | "requests" | null;
 
 type ApiResult = { error?: string; message?: string };
@@ -376,6 +377,17 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
               >
                 Events <span>{eventsCount}</span>
               </button>
+              <button
+                id="group-chat-tab"
+                className={activeTab === "chat" ? "is-active" : ""}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "chat"}
+                aria-controls="group-activity-panel"
+                onClick={() => setActiveTab("chat")}
+              >
+                Chat
+              </button>
             </div>
           </div>
 
@@ -383,7 +395,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
             className="group-activity-panel"
             id="group-activity-panel"
             role="tabpanel"
-            aria-labelledby={activeTab === "posts" ? "group-posts-tab" : "group-events-tab"}
+            aria-labelledby={`group-${activeTab}-tab`}
             tabIndex={0}
           >
             {activeTab === "posts" ? (
@@ -391,6 +403,8 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
                 <CreatePostGp group_id={groupId} />
                 <Post query="" myposts group_id={groupId} />
               </>
+            ) : activeTab === "chat" ? (
+              <GroupChat group_id={groupId} />
             ) : (
               <>
                 <CreateEvent group_id={groupId} onEventCreated={() => setEventsVersion((version) => version + 1)} />
@@ -401,7 +415,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
         </section>
       ) : (
         <section className="group-content group-locked">
-          <p>Join this group to see its posts and events.</p>
+          <p>Join this group to see its posts, events and chat.</p>
         </section>
       )}
 

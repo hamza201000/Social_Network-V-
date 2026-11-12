@@ -3,7 +3,15 @@ package repository
 import (
 	"backend/internal/models"
 	"database/sql"
+	"errors"
 	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrEmailTaken    = errors.New("this email is already registered")
+	ErrUsernameTaken = errors.New("this username is already taken")
 )
 
 // DefaultAvatar is the image (in database/upload) used for users who didn't upload one.
@@ -13,11 +21,32 @@ func (repo *UserRepository) RegisterUser(user models.RegisterRequest) error {
 	if user.AvatarUrl == "" {
 		user.AvatarUrl = DefaultAvatar
 	}
+	// never store the plain password, only its bcrypt hash (salt included)
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hash)
 	transaction, err := repo.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer transaction.Rollback()
+
+	var emailTaken, usernameTaken bool
+	err = transaction.QueryRow(`SELECT
+		EXISTS (SELECT 1 FROM users WHERE lower(email) = lower($1) OR lower(username) = lower($1)),
+		EXISTS (SELECT 1 FROM users WHERE lower(username) = lower($2) OR lower(email) = lower($2))`,
+		user.Email, user.Username).Scan(&emailTaken, &usernameTaken)
+	if err != nil {
+		return err
+	}
+	if emailTaken {
+		return ErrEmailTaken
+	}
+	if usernameTaken {
+		return ErrUsernameTaken
+	}
 
 	_, err = transaction.Exec(`INSERT INTO users
 		(first_name, last_name, username, email, password_hash, date_of_birth, about_me, avatar_url)
@@ -57,19 +86,25 @@ func (repo *UserRepository) CanViewImage(filename string, viewerID int64) (bool,
 	return allowed, err
 }
 
-func (repo *UserRepository) LoginUser(user models.LoginRequest) (*models.User, error) {
+// ErrInvalidCredentials is returned when the login or the password is wrong.
+var ErrInvalidCredentials = errors.New("invalid email/username or password")
 
+// LoginUser finds the user by email or username and checks the password
+// against the stored bcrypt hash.
+func (repo *UserRepository) LoginUser(user models.LoginRequest) (*models.User, error) {
 	var userData models.User
-	qeury := `SELECT id,password_hash
-	FROM users
-	WHERE (email=$1 or username=$1)
-	`
-	err := repo.db.QueryRow(qeury, user.Email).Scan(&userData.Id, &userData.Password)
-	if err == sql.ErrNoRows {
-		fmt.Println("err database", err)
+	err := repo.db.QueryRow(`SELECT id, password_hash FROM users WHERE email = $1 OR username = $1`,
+		user.Email).Scan(&userData.Id, &userData.Password)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrInvalidCredentials
+	}
+	if err != nil {
 		return nil, err
 	}
-
+	if bcrypt.CompareHashAndPassword([]byte(userData.Password), []byte(user.Password)) != nil {
+		return nil, ErrInvalidCredentials
+	}
+	userData.Password = ""
 	return &userData, nil
 }
 func (repo *UserRepository) GetUserBySession(sessionID string) (models.User, error) {
@@ -131,6 +166,7 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 			u.username,
 			u.email,
 			u.avatar_url,
+			u.private,
 			EXISTS (
 				SELECT 1 FROM followers f
 				WHERE f.follower_id = $1 AND f.following_target_id = u.id
@@ -152,6 +188,7 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 		&user.Username,
 		&user.Email,
 		&user.AvatarUrl,
+		&user.IsPrivate,
 		&user.FollowedByMe,
 		&user.Followers_count,
 		&user.Following_count,
@@ -161,6 +198,7 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 		fmt.Println("error getting user:", err)
 		return user, err
 	}
+	user.CanView = !user.IsPrivate || user.FollowedByMe || user.Id == user_id
 
 	return user, nil
 }
@@ -170,7 +208,7 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 	var user models.User
 
 	query := `
-		SELECT u.id, u.first_name, u.last_name, u.username, u.email, u.avatar_url, u.date_of_birth, u.about_me, u.created_at,
+		SELECT u.id, u.first_name, u.last_name, u.username, u.email, u.avatar_url, u.date_of_birth, u.about_me, u.created_at, u.private,
 		(
 			SELECT COUNT(*)
 			FROM followers f
@@ -197,6 +235,7 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 		&user.DateOfBirth,
 		&user.AboutMe,
 		&user.CreatedAt,
+		&user.IsPrivate,
 		&user.Followers_count,
 		&user.Following_count,
 	)
@@ -205,6 +244,8 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 		fmt.Println("error getting user:", err)
 		return user, err
 	}
+
+	user.CanView = true
 
 	return user, nil
 }
@@ -334,4 +375,34 @@ func (repo *UserRepository) SearchUser(name_sh string) ([]models.User, error) {
 		return nil, err
 	}
 	return users, nil
+}
+
+// CanViewProfile reports whether viewerID may see targetID's profile details
+// (followers, following, posts...). Public profiles are visible to everyone;
+// private ones only to the owner and their followers.
+func (repo *UserRepository) CanViewProfile(viewerID, targetID int64) (bool, error) {
+	if viewerID == targetID {
+		return true, nil
+	}
+	var ok bool
+	err := repo.db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM users u
+			WHERE u.id = ?2
+			  AND (
+				u.private = 0
+				OR EXISTS (
+					SELECT 1 FROM followers f
+					WHERE f.follower_id = ?1 AND f.following_target_id = u.id
+				)
+			  )
+		)
+	`, viewerID, targetID).Scan(&ok)
+	return ok, err
+}
+
+// SetPrivacy makes the user's profile private (true) or public (false).
+func (repo *UserRepository) SetPrivacy(userID int64, private bool) error {
+	_, err := repo.db.Exec(`UPDATE users SET private = $1 WHERE id = $2`, private, userID)
+	return err
 }

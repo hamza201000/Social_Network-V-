@@ -36,16 +36,24 @@ func (userHandler UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var res models.Res
 	err := json.NewDecoder(r.Body).Decode(&dataLogin)
 	if err != nil {
-		SendError(w, http.StatusInternalServerError, "internal server")
+		SendError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
-	fmt.Println(dataLogin)
+	dataLogin.Email = strings.TrimSpace(dataLogin.Email)
+	if dataLogin.Email == "" || dataLogin.Password == "" {
+		SendError(w, http.StatusBadRequest, "email/username and password are required")
+		return
+	}
 	user, err := userHandler.UserRepo.LoginUser(dataLogin)
+	if errors.Is(err, repository.ErrInvalidCredentials) {
+		SendError(w, http.StatusUnauthorized, "invalid email/username or password")
+		return
+	}
 	if err != nil {
+		log.Printf("login: %v", err)
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-	fmt.Println(user)
 	token, err := userHandler.UserRepo.CreateSession(user.Id)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, "internal server")
@@ -140,6 +148,10 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if userData.AvatarUrl != "" {
 			repo.removeNewImage(userData.AvatarUrl)
+		}
+		if errors.Is(err, repository.ErrEmailTaken) || errors.Is(err, repository.ErrUsernameTaken) {
+			SendError(w, http.StatusConflict, err.Error())
+			return
 		}
 		log.Printf("register user: %v", err)
 		SendError(
@@ -279,7 +291,16 @@ func (userHandler UserHandler) GetFollowers(w http.ResponseWriter, r *http.Reque
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-	// user_id := r.Context().Value("user_id").(int64)
+	user_id := r.Context().Value("user_id").(int64)
+	allowed, err := userHandler.UserRepo.CanViewProfile(user_id, int64(user_target))
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	if !allowed {
+		SendError(w, http.StatusForbidden, "this profile is private")
+		return
+	}
 	followers, err := userHandler.UserRepo.Followers(int64(user_target))
 	if err != nil {
 		fmt.Println("error data base GetFollowers ", err)
@@ -300,7 +321,16 @@ func (userHandler UserHandler) GetFollowing(w http.ResponseWriter, r *http.Reque
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-	// user_id := r.Context().Value("user_id").(int64)
+	user_id := r.Context().Value("user_id").(int64)
+	allowed, err := userHandler.UserRepo.CanViewProfile(user_id, int64(user_target))
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	if !allowed {
+		SendError(w, http.StatusForbidden, "this profile is private")
+		return
+	}
 	connections, err := userHandler.UserRepo.Following(int64(user_target))
 	if err != nil {
 		fmt.Println("error data base getfoolowin ", err)
@@ -311,4 +341,18 @@ func (userHandler UserHandler) GetFollowing(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	SendJSON(w, http.StatusOK, connections)
+}
+
+func (userHandler UserHandler) UpdatePrivacy(w http.ResponseWriter, r *http.Request) {
+	var req models.PrivacyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		SendError(w, http.StatusBadRequest, "invalid data")
+		return
+	}
+	user_id := r.Context().Value("user_id").(int64)
+	if err := userHandler.UserRepo.SetPrivacy(user_id, req.Private); err != nil {
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	SendJSON(w, http.StatusOK, models.Res{Message: "privacy updated", Data: map[string]bool{"is_private": req.Private}})
 }

@@ -89,7 +89,7 @@ func (handler *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) 
 
 	message, err := handler.saveMessage(senderID, request)
 	if errors.Is(err, repository.ErrMessageNotAllowed) {
-		SendError(w, http.StatusForbidden, "You can message a user only if one of you follows the other")
+		SendError(w, http.StatusForbidden, "You can message this user only if one of you follows the other")
 		return
 	}
 	if err != nil {
@@ -151,6 +151,27 @@ func (handler *ChatHandler) WebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 
 		request.Message = strings.TrimSpace(request.Message)
+		if request.GroupID > 0 {
+			if request.Message == "" || len(request.Message) > 5000 {
+				if err := client.Send(websocketError("a message of 1 to 5000 bytes is required")); err != nil {
+					return
+				}
+				continue
+			}
+			// on success the message is broadcast to every member, the sender's own tabs included
+			if _, err := handler.saveGroupMessage(userID, request.GroupID, request.Message); err != nil {
+				text := "Failed to send message"
+				if errors.Is(err, repository.ErrNotGroupChatMember) {
+					text = "You must be a member of this group to chat in it"
+				} else {
+					log.Printf("save group message: %v", err)
+				}
+				if sendErr := client.Send(websocketError(text)); sendErr != nil {
+					return
+				}
+			}
+			continue
+		}
 		if request.ReceiverID < 1 || request.ReceiverID == userID || request.Message == "" || len(request.Message) > 5000 {
 			if err := client.Send(websocketError("receiver_id and a message of 1 to 5000 bytes are required")); err != nil {
 				return
@@ -160,7 +181,7 @@ func (handler *ChatHandler) WebSocket(w http.ResponseWriter, r *http.Request) {
 
 		message, err := handler.saveMessage(userID, request)
 		if errors.Is(err, repository.ErrMessageNotAllowed) {
-			if sendErr := client.Send(websocketError("You can message a user only if one of you follows the other")); sendErr != nil {
+			if sendErr := client.Send(websocketError("You can message this user only if one of you follows the other")); sendErr != nil {
 				return
 			}
 			continue
@@ -196,6 +217,83 @@ func (handler *ChatHandler) saveMessage(senderID int64, request models.NewMessag
 		log.Printf("deliver chat message to user %d: %v", request.ReceiverID, err)
 	}
 	return message, nil
+}
+
+// saveGroupMessage stores a group chat message and pushes it live to every online member.
+func (handler *ChatHandler) saveGroupMessage(senderID, groupID int64, text string) (models.GroupMessage, error) {
+	message, err := handler.MessageRepo.InsertGroupMessage(senderID, groupID, text)
+	if err != nil {
+		return message, err
+	}
+	memberIDs, err := handler.MessageRepo.GroupMemberIDs(groupID)
+	if err != nil {
+		log.Printf("group chat members of %d: %v", groupID, err)
+		return message, nil
+	}
+	for _, memberID := range memberIDs {
+		if err := handler.Hub.SendToUser(memberID, message); err != nil {
+			log.Printf("deliver group message to user %d: %v", memberID, err)
+		}
+	}
+	return message, nil
+}
+
+func (handler *ChatHandler) GetGroupMessages(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authenticatedUserID(r)
+	if !ok {
+		SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	groupID, err := strconv.ParseInt(r.PathValue("group_id"), 10, 64)
+	if err != nil || groupID < 1 {
+		SendError(w, http.StatusBadRequest, "Invalid group id")
+		return
+	}
+	messages, err := handler.MessageRepo.GetGroupMessages(userID, groupID)
+	if errors.Is(err, repository.ErrNotGroupChatMember) {
+		SendError(w, http.StatusForbidden, "You must be a member of this group to see its chat")
+		return
+	}
+	if err != nil {
+		log.Printf("get group messages: %v", err)
+		SendError(w, http.StatusInternalServerError, "Failed to retrieve messages")
+		return
+	}
+	SendJSON(w, http.StatusOK, messages)
+}
+
+func (handler *ChatHandler) SendGroupMessage(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authenticatedUserID(r)
+	if !ok {
+		SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	groupID, err := strconv.ParseInt(r.PathValue("group_id"), 10, 64)
+	if err != nil || groupID < 1 {
+		SendError(w, http.StatusBadRequest, "Invalid group id")
+		return
+	}
+	var request models.NewMessage
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&request); err != nil {
+		SendError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	request.Message = strings.TrimSpace(request.Message)
+	if request.Message == "" || len(request.Message) > 5000 {
+		SendError(w, http.StatusBadRequest, "a message of 1 to 5000 bytes is required")
+		return
+	}
+	message, err := handler.saveGroupMessage(userID, groupID, request.Message)
+	if errors.Is(err, repository.ErrNotGroupChatMember) {
+		SendError(w, http.StatusForbidden, "You must be a member of this group to chat in it")
+		return
+	}
+	if err != nil {
+		log.Printf("send group message: %v", err)
+		SendError(w, http.StatusInternalServerError, "Failed to send message")
+		return
+	}
+	SendJSON(w, http.StatusCreated, message)
 }
 
 func authenticatedUserID(r *http.Request) (int64, bool) {

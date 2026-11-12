@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users(
     avatar_url TEXT NOT NULL DEFAULT '',
     email TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    private INTEGER NOT NULL DEFAULT '0',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     about_me TEXT NOT NULL DEFAULT ''
 );

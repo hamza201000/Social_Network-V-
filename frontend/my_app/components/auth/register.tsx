@@ -50,6 +50,7 @@ export default function RegisterForm() {
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true)
+        setError(null)
         const Form = new FormData()
         Form.append("first_name", firstName);
         Form.append("last_name", lastName);
@@ -68,20 +69,18 @@ export default function RegisterForm() {
                 body: Form,
                 credentials: "include"
             })
-            const data: resData = await response.json()
+            const data: resData | null = await response.json().catch(() => null)
             if (!response.ok) {
-                const error = data.err
-                if (error != undefined) {
-                    setError(error)
-                }
+                setError(data?.error || data?.err || "Could not create your account, please try again.")
+                return
             }
             if (response.status==201)
             {
                 router.replace('/login');
                 return;                
             }
-        } catch (err) {
-
+        } catch {
+            setError("Cannot reach the server. Check your connection and try again.")
         } finally {
             setLoading(false)
         }

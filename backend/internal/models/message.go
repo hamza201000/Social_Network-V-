@@ -23,5 +23,18 @@ type Client struct {
 
 type NewMessage struct {
 	ReceiverID int64  `json:"receiver_id"`
+	GroupID    int64  `json:"group_id,omitempty"` // set to send to a group chat instead of a user
 	Message    string `json:"message"`
+}
+
+// GroupMessage is a message posted in a group's common chat room.
+type GroupMessage struct {
+	ID             int64     `json:"id"`
+	Type           string    `json:"type"` // always "group_message"
+	GroupID        int64     `json:"group_id"`
+	SenderID       int64     `json:"sender_id"`
+	UsernameSender string    `json:"username_sender"`
+	AvatarSender   string    `json:"avatar_sender"`
+	Message        string    `json:"message"`
+	CreatedAt      time.Time `json:"created_at"`
 }

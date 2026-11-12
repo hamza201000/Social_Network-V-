@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import ConversationList from "@/components/chat/conv_list";
+import EmojiPicker from "@/components/chat/EmojiPicker";
 import type { ChatMessage, ChatUser, NewMessage } from "@/types/chat";
 import { API_BASE_URL } from "@/lib/api";
 import "./chat.css";
@@ -85,7 +86,6 @@ export default function ChatPage() {
       };
       connection.onmessage = (event) => {
         const message: ChatMessage = JSON.parse(event.data);
-        // the same socket also carries notifications and group updates: only chat messages and errors are handled here
         if (message.type !== "message" && message.type !== "error") return;
         if (message.type === "error") {
           setError(message.message);
@@ -121,7 +121,7 @@ export default function ChatPage() {
         void loadConversations();
       };
       connection.onerror = () => {
-        setError("Could not connect to chat. Check that the backend is running.");
+        console.log("Could not connect to chat. Check that the backend is running.");
       };
     }
 
@@ -313,6 +313,7 @@ export default function ChatPage() {
               </div>
 
               <form className="message-composer" onSubmit={sendMessage}>
+                <EmojiPicker onPick={(emoji) => setDraft((current) => current + emoji)} />
                 <input
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}

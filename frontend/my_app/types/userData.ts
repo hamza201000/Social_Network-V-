@@ -11,6 +11,8 @@ export type UserData = {
   followers_count?:number
     following_count?:number
   created_at: string;
+  is_private?: boolean;
+  can_view?: boolean;
 };
 
 

@@ -40,7 +40,7 @@ export default function CreateEvent({ group_id, onEventCreated }: CreateEventPro
       );
       const data: resData = await response.json();
       if (!response.ok) {
-        throw new Error(data.err || "Could not create event.");
+        throw new Error(data.error || data.err || "Could not create event.");
       }
 
       setTitle("");

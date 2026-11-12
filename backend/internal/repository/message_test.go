@@ -21,7 +21,7 @@ func TestMessageRepository(t *testing.T) {
 	db.SetMaxOpenConns(1)
 
 	_, err = db.Exec(`
-		CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL);
+		CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL, avatar_url TEXT NOT NULL DEFAULT '');
 		CREATE TABLE followers (
 			follower_id INTEGER NOT NULL,
 			following_target_id INTEGER NOT NULL,

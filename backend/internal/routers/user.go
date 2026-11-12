@@ -14,6 +14,7 @@ func UserRouter(mux *http.ServeMux, userHandler *handler.UserHandler) {
 	// profile
 	mux.HandleFunc("GET /api/user/{username}", middleware.Middleware(userHandler.UserRepo, userHandler.GetUserProfile))
 	mux.HandleFunc("GET /api/myprofile", middleware.Middleware(userHandler.UserRepo, userHandler.GetMyProfile))
+	mux.HandleFunc("PUT /api/myprofile/privacy", middleware.Middleware(userHandler.UserRepo, userHandler.UpdatePrivacy))
 	mux.HandleFunc("GET /api/logout", middleware.Middleware(userHandler.UserRepo, userHandler.Logout))
 	mux.HandleFunc("GET /api/user/search", middleware.Middleware(userHandler.UserRepo, userHandler.SearchUser))
 	//user/${username}/follow

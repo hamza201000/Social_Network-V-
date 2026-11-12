@@ -30,7 +30,7 @@ export default function EventCard({ event, group_id, onVoted }: EventCardProps) 
         },
       );
       const data: resData = await response.json();
-      if (!response.ok) throw new Error(data.err || "Could not save your vote.");
+      if (!response.ok) throw new Error(data.error || data.err || "Could not save your vote.");
       onVoted();
     } catch (voteError) {
       setError(voteError instanceof Error ? voteError.message : "Could not save your vote.");

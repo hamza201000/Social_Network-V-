@@ -6,7 +6,7 @@ dev:
 	wait
 
 frontend:
-	cd frontend/my_app && npm run dev
+	cd frontend/my_app && npm install && npm run dev
 
 backend:
 	cd backend && go run cmd/server/main.go

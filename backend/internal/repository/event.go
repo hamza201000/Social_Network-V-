@@ -50,10 +50,10 @@ func (repo *UserRepository) GetGroupEvents(userID, groupID int64) ([]models.Even
 		SELECT e.id, e.group_id, e.creator_id, e.title, e.description, e.event_at, e.created_at,
 			COALESCE(SUM(CASE WHEN er.response = 'Going' THEN 1 ELSE 0 END), 0),
 			COALESCE(SUM(CASE WHEN er.response = 'Not going' THEN 1 ELSE 0 END), 0),
-			COALESCE(MAX(CASE WHEN er.user_id = $2 THEN er.response END), '')
+			COALESCE(MAX(CASE WHEN er.user_id = ?2 THEN er.response END), '')
 		FROM events e
 		LEFT JOIN event_responses er ON er.event_id = e.id
-		WHERE e.group_id = $1
+		WHERE e.group_id = ?1
 		GROUP BY e.id
 		ORDER BY e.event_at ASC
 	`, groupID, userID)

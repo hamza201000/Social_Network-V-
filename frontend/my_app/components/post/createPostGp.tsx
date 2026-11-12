@@ -59,7 +59,7 @@ export default function CreatePostGp({group_id}:CreatePostProps) {
                 });
                 const data: resData = await response.json();
                 if (!response.ok) {
-                    throw new Error(data.err || "Could not create post.");
+                    throw new Error(data.error || data.err || "Could not create post.");
                 }
     
                 setContent("");

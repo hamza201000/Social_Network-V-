@@ -6,7 +6,7 @@ import (
 	"errors"
 )
 
-var ErrMessageNotAllowed = errors.New("users are not connected by a follow relationship")
+var ErrMessageNotAllowed = errors.New("neither user follows the other")
 
 type MessageRepository struct {
 	db *sql.DB
@@ -16,14 +16,15 @@ func NewMessageRepository(db *sql.DB) *MessageRepository {
 	return &MessageRepository{db: db}
 }
 
+// CanMessage reports whether senderID may message receiverID: at least one of
+// the two users must follow the other (either direction is enough).
 func (repo *MessageRepository) CanMessage(senderID, receiverID int64) (bool, error) {
 	var allowed bool
 	err := repo.db.QueryRow(`
 		SELECT EXISTS (
-			SELECT 1
-			FROM followers
-			WHERE (follower_id = $1 AND following_target_id = $2)
-			   OR (follower_id = $2 AND following_target_id = $1)
+			SELECT 1 FROM followers f
+			WHERE (f.follower_id = ?1 AND f.following_target_id = ?2)
+			   OR (f.follower_id = ?2 AND f.following_target_id = ?1)
 		)
 	`, senderID, receiverID).Scan(&allowed)
 	return allowed, err
@@ -215,4 +216,99 @@ func scanMessage(scanner messageScanner) (models.DataMessage, error) {
 	)
 	message.Type = "message"
 	return message, err
+}
+
+var ErrNotGroupChatMember = errors.New("user is not a member of this group")
+
+// IsGroupMember reports whether userID is the admin or a member of groupID.
+func (repo *MessageRepository) IsGroupMember(userID, groupID int64) (bool, error) {
+	var member bool
+	err := repo.db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM groups g WHERE g.id = ?1 AND g.admin_id = ?2
+			UNION ALL
+			SELECT 1 FROM members_gp m WHERE m.group_id = ?1 AND m.user_id = ?2
+		)
+	`, groupID, userID).Scan(&member)
+	return member, err
+}
+
+// GroupMemberIDs returns the admin and every member of a group.
+func (repo *MessageRepository) GroupMemberIDs(groupID int64) ([]int64, error) {
+	rows, err := repo.db.Query(`
+		SELECT admin_id FROM groups WHERE id = ?1
+		UNION
+		SELECT user_id FROM members_gp WHERE group_id = ?1
+	`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := make([]int64, 0)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+const groupMessageQuery = `
+	SELECT gm.id, gm.group_id, gm.sender_id, u.username, u.avatar_url, gm.message, gm.created_at
+	FROM group_messages gm
+	JOIN users u ON u.id = gm.sender_id
+`
+
+func scanGroupMessage(scanner messageScanner) (models.GroupMessage, error) {
+	var message models.GroupMessage
+	err := scanner.Scan(&message.ID, &message.GroupID, &message.SenderID, &message.UsernameSender,
+		&message.AvatarSender, &message.Message, &message.CreatedAt)
+	message.Type = "group_message"
+	return message, err
+}
+
+func (repo *MessageRepository) InsertGroupMessage(senderID, groupID int64, text string) (models.GroupMessage, error) {
+	member, err := repo.IsGroupMember(senderID, groupID)
+	if err != nil {
+		return models.GroupMessage{}, err
+	}
+	if !member {
+		return models.GroupMessage{}, ErrNotGroupChatMember
+	}
+	result, err := repo.db.Exec(`INSERT INTO group_messages (group_id, sender_id, message) VALUES (?1, ?2, ?3)`,
+		groupID, senderID, text)
+	if err != nil {
+		return models.GroupMessage{}, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return models.GroupMessage{}, err
+	}
+	return scanGroupMessage(repo.db.QueryRow(groupMessageQuery+` WHERE gm.id = ?1`, id))
+}
+
+func (repo *MessageRepository) GetGroupMessages(userID, groupID int64) ([]models.GroupMessage, error) {
+	member, err := repo.IsGroupMember(userID, groupID)
+	if err != nil {
+		return nil, err
+	}
+	if !member {
+		return nil, ErrNotGroupChatMember
+	}
+	rows, err := repo.db.Query(groupMessageQuery+` WHERE gm.group_id = ?1 ORDER BY gm.created_at ASC, gm.id ASC`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	messages := make([]models.GroupMessage, 0)
+	for rows.Next() {
+		message, err := scanGroupMessage(rows)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, message)
+	}
+	return messages, rows.Err()
 }

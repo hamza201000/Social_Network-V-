@@ -76,20 +76,20 @@ func (repo *UserRepository) InvitableUsers(user_id, group_id int64) ([]models.In
 	rows, err := repo.db.Query(`
 		SELECT u.id, u.first_name, u.last_name, u.username, u.avatar_url,
 			CASE
-				WHEN EXISTS (SELECT 1 FROM groups g WHERE g.id = $2 AND g.admin_id = u.id)
-				  OR EXISTS (SELECT 1 FROM members_gp m WHERE m.group_id = $2 AND m.user_id = u.id)
+				WHEN EXISTS (SELECT 1 FROM groups g WHERE g.id = ?2 AND g.admin_id = u.id)
+				  OR EXISTS (SELECT 1 FROM members_gp m WHERE m.group_id = ?2 AND m.user_id = u.id)
 					THEN 'member'
 				ELSE COALESCE((
 					SELECT s.member_status FROM members_status s
-					WHERE s.group_id = $2 AND s.user_id = u.id AND s.member_status IN ('invited', 'pending')
+					WHERE s.group_id = ?2 AND s.user_id = u.id AND s.member_status IN ('invited', 'pending')
 					ORDER BY s.id DESC LIMIT 1
 				), 'none')
 			END AS status
 		FROM users u
-		WHERE u.id != $1 AND u.id IN (
-			SELECT follower_id FROM followers WHERE following_target_id = $1
+		WHERE u.id != ?1 AND u.id IN (
+			SELECT follower_id FROM followers WHERE following_target_id = ?1
 			UNION
-			SELECT following_target_id FROM followers WHERE follower_id = $1
+			SELECT following_target_id FROM followers WHERE follower_id = ?1
 		)
 		ORDER BY u.username
 	`, user_id, group_id)

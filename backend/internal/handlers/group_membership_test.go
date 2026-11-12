@@ -23,7 +23,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// Full invitation / join request flow, checking what each user receives on their websocket.
 func TestGroupMembershipFlow(t *testing.T) {
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -31,8 +30,6 @@ func TestGroupMembershipFlow(t *testing.T) {
 	}
 	defer db.Close()
 	db.SetMaxOpenConns(1)
-
-	// apply every migration in order
 	files, _ := filepath.Glob("../../database/migrations/*.up.sql")
 	sort.Strings(files)
 	for _, f := range files {
@@ -51,7 +48,6 @@ func TestGroupMembershipFlow(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// bob follows alice; carol knows nobody
 	if _, err := db.Exec(`INSERT INTO followers (follower_id, following_target_id) VALUES (2, 1)`); err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +61,6 @@ func TestGroupMembershipFlow(t *testing.T) {
 	}
 	gid := strconv.FormatInt(groupID, 10)
 
-	// websocket per user: /?user=N registers the connection for user N
 	upgrader := gorilla.Upgrader{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := strconv.ParseInt(r.URL.Query().Get("user"), 10, 64)
@@ -88,7 +83,6 @@ func TestGroupMembershipFlow(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	// call runs a handler as user `as` and returns the status code
 	call := func(as int64, fn http.HandlerFunc, path map[string]string, body string) int {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 		r = r.WithContext(context.WithValue(r.Context(), "user_id", as))
@@ -99,7 +93,6 @@ func TestGroupMembershipFlow(t *testing.T) {
 		fn(w, r)
 		return w.Code
 	}
-	// expect waits until user receives a websocket message whose "type" and kind match
 	expect := func(user int64, msgType, kind string) {
 		t.Helper()
 		c := sockets[user]
@@ -126,11 +119,9 @@ func TestGroupMembershipFlow(t *testing.T) {
 	}
 	g := map[string]string{"group_id": gid}
 
-	// alice cannot invite carol: they are not connected
 	if code := call(1, h.InviteUsrGp, g, `{"user_id":3}`); code != http.StatusForbidden {
 		t.Fatalf("invite stranger: %d", code)
 	}
-	// alice invites bob, bob is told in real time
 	if code := call(1, h.InviteUsrGp, g, `{"user_id":2}`); code != http.StatusOK {
 		t.Fatalf("invite bob: %d", code)
 	}
@@ -140,14 +131,12 @@ func TestGroupMembershipFlow(t *testing.T) {
 		t.Fatalf("invite twice: %d", code)
 	}
 
-	// bob accepts; alice is told
 	if code := call(2, h.RespondInvitation, g, `{"accept":true}`); code != http.StatusOK {
 		t.Fatalf("bob accepts: %d", code)
 	}
 	expect(1, "notification", models.NotifInviteAccepted)
 	expect(1, "group_update", "member_joined")
 
-	// carol asks to join; every member (alice and bob) is notified
 	if code := call(3, h.JoinUsrGroup, g, ``); code != http.StatusOK {
 		t.Fatalf("carol joins: %d", code)
 	}
@@ -158,19 +147,16 @@ func TestGroupMembershipFlow(t *testing.T) {
 	}
 	req := map[string]string{"group_id": gid, "user_id": "3"}
 
-	// a non-member (carol herself) can neither answer nor list requests
 	if code := call(3, h.RespondJoinRequest, req, `{"accept":true}`); code != http.StatusForbidden {
 		t.Fatalf("non-member answering request: %d", code)
 	}
 	if code := call(3, h.GetJoinRequests, g, ``); code != http.StatusForbidden {
 		t.Fatalf("non-member listing requests: %d", code)
 	}
-	// bob is a plain member, not the creator: he can list and answer
 	if code := call(2, h.GetJoinRequests, g, ``); code != http.StatusOK {
 		t.Fatalf("member listing requests: %d", code)
 	}
 
-	// bob refuses, carol is told; carol asks again and bob accepts
 	if code := call(2, h.RespondJoinRequest, req, `{"accept":false}`); code != http.StatusOK {
 		t.Fatalf("member refusing: %d", code)
 	}
@@ -182,7 +168,6 @@ func TestGroupMembershipFlow(t *testing.T) {
 	expect(3, "notification", models.NotifJoinAccepted)
 	expect(1, "group_update", "member_joined") // the creator sees the new member live
 
-	// once answered the request is gone, so a second answer is a 404
 	if code := call(1, h.RespondJoinRequest, req, `{"accept":true}`); code != http.StatusNotFound {
 		t.Fatalf("answering twice: %d", code)
 	}

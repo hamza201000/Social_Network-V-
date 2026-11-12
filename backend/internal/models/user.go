@@ -14,6 +14,12 @@ type User struct {
 	Followers_count int    `json:"followers_count"`
 	Following_count int    `json:"following_count"`
 	CreatedAt       string `json:"created_at"`
+	IsPrivate       bool   `json:"is_private"`
+	CanView         bool   `json:"can_view"` // false when the profile is private and the viewer is not a follower
+}
+
+type PrivacyRequest struct {
+	Private bool `json:"private"`
 }
 
 type RegisterRequest struct {

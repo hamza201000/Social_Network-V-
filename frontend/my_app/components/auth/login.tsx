@@ -15,31 +15,35 @@ export default function LoginForm() {
     const [error, setError] = useState<string | null>(null);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-        setLoading(true)
         event.preventDefault();
-        const Form = new FormData()
-        Form.append("username", username)
-        Form.append("password", password)
-        const body = { username, password,email:username }
+        setError(null)
+        const login = username.trim()
+        if (!login || !password) {
+            setError("Please enter your email or username and your password.")
+            return
+        }
+        setLoading(true)
         try {
             const response = await fetch(`${API_BASE_URL}/api/login`, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify(body),
+                body: JSON.stringify({ email: login, password }),
                 credentials: "include"
             })
-            const data: resData = await response.json()
             if (!response.ok) {
-                const error = data.err
-                if (error != undefined) {
-                    setError(error)
+                const data: resData | null = await response.json().catch(() => null)
+                if (response.status === 401) {
+                    setError("Wrong email/username or password.")
+                } else {
+                    setError(data?.error || data?.err || "Something went wrong, please try again.")
                 }
+                return
             }
-        } catch (err) {
-            setError(error)
-        } finally {
             router.replace("/")
             router.refresh()
+        } catch {
+            setError("Cannot reach the server. Check your connection and try again.")
+        } finally {
             setLoading(false)
         }
     }
@@ -80,7 +84,7 @@ export default function LoginForm() {
                 </label>
                 {error && <div className="error">{String(error)}</div>}
                 <button className="primary-button" disabled={loading}>
-                    Sign in
+                    {loading ? "Signing in..." : "Sign in"}
                 </button>
                 <p className="auth-footer">
                     Don't have an account?

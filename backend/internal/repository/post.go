@@ -43,20 +43,29 @@ func (repo *UserRepository) CreatePost(userID int64, post models.PostRequest) (i
 	return postID, nil
 }
 
+
 // postVisibleTo returns a SQL condition that is true when the viewer (the SQL
 // parameter named by v, e.g. "$2") may see post p:
 //   - group posts: only the group admin and members
-//   - other posts: public, own post, almost_private for followers, private for chosen users
+//   - own posts: always
+//   - posts of a private profile: only its followers, and then the post's own privacy applies
+//   - other posts: public, almost_private for followers, private for chosen users
 func postVisibleTo(v string) string {
+	isFollower := `EXISTS (SELECT 1 FROM followers vf WHERE vf.follower_id = ` + v + ` AND vf.following_target_id = p.user_id)`
 	return `(CASE WHEN p.group_id != 0 THEN (
 			EXISTS (SELECT 1 FROM groups vg WHERE vg.id = p.group_id AND vg.admin_id = ` + v + `)
 			OR EXISTS (SELECT 1 FROM members_gp vm WHERE vm.group_id = p.group_id AND vm.user_id = ` + v + `)
 		) ELSE (
-			p.privacy = 'public' OR p.user_id = ` + v + `
-			OR (p.privacy = 'almost_private' AND EXISTS (
-				SELECT 1 FROM followers vf WHERE vf.follower_id = ` + v + ` AND vf.following_target_id = p.user_id))
-			OR (p.privacy = 'private' AND EXISTS (
-				SELECT 1 FROM post_allowed_users va WHERE va.post_id = p.id AND va.user_id = ` + v + `))
+			p.user_id = ` + v + `
+			OR (
+				(NOT EXISTS (SELECT 1 FROM users vu WHERE vu.id = p.user_id AND vu.private = 1) OR ` + isFollower + `)
+				AND (
+					p.privacy = 'public'
+					OR (p.privacy = 'almost_private' AND ` + isFollower + `)
+					OR (p.privacy = 'private' AND EXISTS (
+						SELECT 1 FROM post_allowed_users va WHERE va.post_id = p.id AND va.user_id = ` + v + `))
+				)
+			)
 		) END)`
 }
 
@@ -70,10 +79,8 @@ func (repo *UserRepository) CanViewPost(postID, viewerID int64) (bool, error) {
 }
 
 func (repo *UserRepository) GetPosts(viewerID int64) ([]models.PostData, error) {
-	rows, err := repo.db.Query(postQuery+` WHERE ((p.privacy = 'public' OR p.user_id = ?) AND p.group_id = 0) OR
-		(p.privacy = 'almost_private' AND EXISTS (SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_target_id = p.user_id)) OR
-		(p.privacy = 'private' AND EXISTS (SELECT 1 FROM post_allowed_users a WHERE a.post_id = p.id AND a.user_id = ?))
-		ORDER BY p.created_at DESC`, viewerID, viewerID, viewerID)
+	rows, err := repo.db.Query(postQuery+` WHERE p.group_id = 0 AND `+postVisibleTo("$1")+`
+		ORDER BY p.created_at DESC`, viewerID)
 	if err != nil {
 		return nil, err
 	}

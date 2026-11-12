@@ -7,7 +7,6 @@ import { UserData } from "@/types/userData";
 import Follow from "./follow";
 import Connections from "./activeConnections";
 import { API_BASE_URL, imageUrl } from "@/lib/api";
-import { Ubuntu } from "next/font/google";
 
 
 export type ProfileConnection = {
@@ -27,17 +26,13 @@ export type ProfileData = {
     following_count?:number
 };
 
-// type ProfileProps = {
-//     profile?: ProfileData;
-//     followers?: ProfileConnectionimport Follow from "./follow";
-// [];
-//     following?: ProfileConnection[];
-// };
+
 
 export default  function Profile({ username, myProfile }: { username: string, myProfile: boolean }) {
     const [openList, setOpenList] = useState<"followers" | "following" | null>(null);
     const [profile, setProfile] = useState<UserData>();
     const [avatarFailed, setAvatarFailed] = useState(false);
+    const [privacySaving, setPrivacySaving] = useState(false);
 
     // const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
     
@@ -65,6 +60,30 @@ export default  function Profile({ username, myProfile }: { username: string, my
             console.error("Error fetching profile data:", error);
         }
     }
+    const togglePrivacy = async () => {
+        if (!profile || privacySaving) return;
+        const next = !profile.is_private;
+        setPrivacySaving(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/myprofile/privacy`, {
+                method: "PUT",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ private: next }),
+            });
+            if (!response.ok) {
+                throw new Error("Failed to update privacy");
+            }
+            setProfile({ ...profile, is_private: next });
+        } catch (error) {
+            console.error("Error updating privacy:", error);
+        } finally {
+            setPrivacySaving(false);
+        }
+    };
+
+    const canView = myProfile || profile?.can_view !== false;
+
     useEffect(() => {
         fetchProfile();
     }, []);
@@ -88,17 +107,31 @@ export default  function Profile({ username, myProfile }: { username: string, my
                     <div className="profile-identity">
                         <p className="profile-eyebrow">Profile</p>
                         <h1 id="profile-title">{profile?.first_name || "User"}</h1>
+                        {profile && (
+                            <p className="profile-privacy-badge">{profile.is_private ? "Private profile" : "Public profile"}</p>
+                        )}
                     </div>
                     {!myProfile ?  <Follow isFollowed={profile?.followed_by_me}  user_id={profile?.user_id} />:<></> }
+                    {myProfile && profile && (
+                        <button
+                            type="button"
+                            className="primary-button privacy-toggle"
+                            onClick={togglePrivacy}
+                            disabled={privacySaving}
+                            aria-pressed={!!profile.is_private}
+                        >
+                            {profile.is_private ? "Switch to public" : "Switch to private"}
+                        </button>
+                    )}
                     
                 </header>
 
                 <div className="profile-connections" aria-label="Connections">
-                    <button type="button" className="profile-connection-button" onClick={() => setOpenList("followers")}>
+                    <button type="button" className="profile-connection-button" disabled={!canView} onClick={() => setOpenList("followers")}>
                         <strong>{profile?.followers_count}</strong>
                         <span>Followers</span>
                     </button>
-                    <button type="button" className="profile-connection-button" onClick={() => setOpenList("following")}>
+                    <button type="button" className="profile-connection-button" disabled={!canView} onClick={() => setOpenList("following")}>
                         <strong>{profile?.following_count}</strong>
                         <span>Following</span>
                     </button>
@@ -106,6 +139,9 @@ export default  function Profile({ username, myProfile }: { username: string, my
 
                 <div className="profile-divider" />
 
+                {!canView ? (
+                    <p className="profile-private-notice">This profile is private. Follow this user to see their information and posts.</p>
+                ) : (
                 <dl className="profile-details">
                     <div className="profile-detail">
                         <dt>First name</dt>
@@ -128,6 +164,7 @@ export default  function Profile({ username, myProfile }: { username: string, my
                         <dd>{profile?.about_me || "Your story will appear here."}</dd>
                     </div>
                 </dl>
+                )}
             </section>
 
             {openList && (
@@ -163,9 +200,11 @@ export default  function Profile({ username, myProfile }: { username: string, my
                     </section>
                 </div>
             )}
-            <div className="profile-card" id="profile-posts">
-                <Post query={username} myposts={myProfile} group_id={undefined}/>
-            </div>
+            {canView && (
+                <div className="profile-card" id="profile-posts">
+                    <Post query={username} myposts={myProfile} group_id={undefined}/>
+                </div>
+            )}
         </div>
     );
 }
