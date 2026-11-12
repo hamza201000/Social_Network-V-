@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 func Middleware(repo *repository.UserRepository, next http.HandlerFunc) http.HandlerFunc {
@@ -25,12 +26,17 @@ func Middleware(repo *repository.UserRepository, next http.HandlerFunc) http.Han
 		}
 		session, err := repo.GetSession(cookie.Value)
 		if err != nil {
-			fmt.Println("error::", err)
 			if errors.Is(err, sql.ErrNoRows) {
 				handler.SendError(w, http.StatusUnauthorized, "Unauthorized")
+				fmt.Println("error session error", err)
 				return
 			}
 			handler.SendError(w, http.StatusInternalServerError, "Bad Request")
+			return
+		}
+		if time.Now().After(session.ExpiresAt) {
+			_ = repo.DeleteSession(cookie.Value)
+			handler.SendError(w, http.StatusUnauthorized, "session expired")
 			return
 		}
 		ctx := context.WithValue(r.Context(), "user_id", session.User_id)

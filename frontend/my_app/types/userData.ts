@@ -13,6 +13,7 @@ export type UserData = {
   created_at: string;
   is_private?: boolean;
   can_view?: boolean;
+  follow_status?: "following" | "requested" | "none";
 };
 
 

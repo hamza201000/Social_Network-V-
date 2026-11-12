@@ -140,8 +140,7 @@ func TestGroupMembershipFlow(t *testing.T) {
 	if code := call(3, h.JoinUsrGroup, g, ``); code != http.StatusOK {
 		t.Fatalf("carol joins: %d", code)
 	}
-	expect(1, "notification", models.NotifJoinRequest)
-	expect(2, "notification", models.NotifJoinRequest)
+	expect(1, "notification", models.NotifJoinRequest) // only the creator is told
 	if code := call(3, h.JoinUsrGroup, g, ``); code != http.StatusConflict {
 		t.Fatalf("carol joins twice: %d", code)
 	}
@@ -153,20 +152,26 @@ func TestGroupMembershipFlow(t *testing.T) {
 	if code := call(3, h.GetJoinRequests, g, ``); code != http.StatusForbidden {
 		t.Fatalf("non-member listing requests: %d", code)
 	}
-	if code := call(2, h.GetJoinRequests, g, ``); code != http.StatusOK {
-		t.Fatalf("member listing requests: %d", code)
+	if code := call(2, h.GetJoinRequests, g, ``); code != http.StatusForbidden {
+		t.Fatalf("member (not creator) listing requests: %d", code)
+	}
+	if code := call(2, h.RespondJoinRequest, req, `{"accept":true}`); code != http.StatusForbidden {
+		t.Fatalf("member (not creator) answering request: %d", code)
+	}
+	if code := call(1, h.GetJoinRequests, g, ``); code != http.StatusOK {
+		t.Fatalf("creator listing requests: %d", code)
 	}
 
-	if code := call(2, h.RespondJoinRequest, req, `{"accept":false}`); code != http.StatusOK {
-		t.Fatalf("member refusing: %d", code)
+	if code := call(1, h.RespondJoinRequest, req, `{"accept":false}`); code != http.StatusOK {
+		t.Fatalf("creator refusing: %d", code)
 	}
 	expect(3, "notification", models.NotifJoinRefused)
 	call(3, h.JoinUsrGroup, g, ``)
-	if code := call(2, h.RespondJoinRequest, req, `{"accept":true}`); code != http.StatusOK {
-		t.Fatalf("member accepting: %d", code)
+	if code := call(1, h.RespondJoinRequest, req, `{"accept":true}`); code != http.StatusOK {
+		t.Fatalf("creator accepting: %d", code)
 	}
 	expect(3, "notification", models.NotifJoinAccepted)
-	expect(1, "group_update", "member_joined") // the creator sees the new member live
+	expect(2, "group_update", "member_joined") // other members see the new member live
 
 	if code := call(1, h.RespondJoinRequest, req, `{"accept":true}`); code != http.StatusNotFound {
 		t.Fatalf("answering twice: %d", code)

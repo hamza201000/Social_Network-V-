@@ -7,8 +7,11 @@ import (
 )
 
 func ValidateCommentRequest(comment models.CommentRequest) error {
-	if strings.TrimSpace(comment.Content) == "" {
-		return errors.New("comment content is required")
+	if strings.TrimSpace(comment.Content) == "" && comment.Image == "" {
+		return errors.New("write something or add an image")
+	}
+	if len(comment.Content) > 2000 {
+		return errors.New("comment must not exceed 2000 characters")
 	}
 	return nil
 }

@@ -6,7 +6,9 @@ export type NotificationType =
   | "invite_accepted"
   | "invite_declined"
   | "join_accepted"
-  | "join_refused";
+  | "join_refused"
+  | "follow_request"
+  | "follow_accepted";
 
 export type AppNotification = {
   id: number;

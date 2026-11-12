@@ -2,6 +2,8 @@
 import "./post.css"
 import { PostData } from "@/types/postData"
 import { imageUrl } from "@/lib/api";
+import { formatDate } from "@/lib/date";
+import Comments from "./comments";
 export default function CardPost({ postData }: { postData: PostData }) {
 
     return (
@@ -9,7 +11,7 @@ export default function CardPost({ postData }: { postData: PostData }) {
             <header>
                 <h2>{postData.username}</h2>
                 <time dateTime={postData.created_at}>
-                    {postData.created_at}
+                    {formatDate(postData.created_at)}
                 </time>
             </header>
             <div>
@@ -25,6 +27,7 @@ export default function CardPost({ postData }: { postData: PostData }) {
                     />
                 )}
             </div>
+            <Comments postId={postData.id} />
         </article>
     )
 }

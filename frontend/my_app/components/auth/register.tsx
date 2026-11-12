@@ -122,7 +122,7 @@ export default function RegisterForm() {
                         />
                     </label>
                     <label>
-                        Username
+                        Nickname <span className="auth-field-optional">Optional</span>
                         <input
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
@@ -133,13 +133,15 @@ export default function RegisterForm() {
                         Date of birth
                         <input
                             type="date"
+                            required
+                            max={new Date().toISOString().slice(0, 10)}
                             value={dateOfBirth}
                             onChange={(e) => setDateOfBirth(e.target.value)}
                         />
                     </label>
                    
                     <div className="avatar-upload-wrapper">
-                        <span className="avatar-upload-label">Profile image</span>
+                        <span className="avatar-upload-label">Profile image <span className="auth-field-optional">Optional</span></span>
                         <div className="avatar-upload-row">
                             <input
                                 ref={fileInputRef}

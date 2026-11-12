@@ -18,7 +18,8 @@ func UserRouter(mux *http.ServeMux, userHandler *handler.UserHandler) {
 	mux.HandleFunc("GET /api/logout", middleware.Middleware(userHandler.UserRepo, userHandler.Logout))
 	mux.HandleFunc("GET /api/user/search", middleware.Middleware(userHandler.UserRepo, userHandler.SearchUser))
 	//user/${username}/follow
-	mux.HandleFunc("GET /api/user/follow", middleware.Middleware(userHandler.UserRepo, userHandler.FollowUser))
+	mux.HandleFunc("POST /api/user/follow", middleware.Middleware(userHandler.UserRepo, userHandler.FollowUser))
+	mux.HandleFunc("POST /api/follow-requests/{user_id}", middleware.Middleware(userHandler.UserRepo, userHandler.RespondFollowRequest))
 	mux.HandleFunc("GET /api/user/{user_id}/followers", middleware.Middleware(userHandler.UserRepo, userHandler.GetFollowers))
 	mux.HandleFunc("GET /api/user/{user_id}/following", middleware.Middleware(userHandler.UserRepo, userHandler.GetFollowing))
 }

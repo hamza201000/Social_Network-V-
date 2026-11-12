@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"strconv"
 	"strings"
 
@@ -66,7 +67,7 @@ func (userHandler UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   3800,
+		MaxAge:   int(repository.SessionDuration.Seconds()),
 	}
 	http.SetCookie(w, cookie)
 	SendJSON(w, http.StatusOK, res)
@@ -94,6 +95,17 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	userData.Password = r.FormValue("password")
 	userData.DateOfBirth = strings.TrimSpace(r.FormValue("date_of_birth"))
 	userData.AboutMe = strings.TrimSpace(r.FormValue("about_me"))
+
+	// the nickname is optional: without one, build a unique one from the name
+	if userData.Username == "" {
+		username, genErr := repo.generateUsername(userData.FirstName, userData.LastName)
+		if genErr != nil {
+			log.Printf("generate username: %v", genErr)
+			SendError(w, http.StatusInternalServerError, "could not register user")
+			return
+		}
+		userData.Username = username
+	}
 
 	err := services.RegisterRequest(userData)
 	if err != nil {
@@ -125,12 +137,13 @@ func (repo *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 			"image/jpeg": true,
 			"image/png":  true,
 			"image/webp": true,
+			"image/gif":  true,
 		}
 		if !allowedTypes[contentType] {
 			SendError(
 				w,
 				http.StatusBadRequest,
-				"only JPEG, PNG and WebP images are allowed",
+				"only JPEG, PNG, WebP and GIF images are allowed",
 			)
 			return
 		}
@@ -247,25 +260,69 @@ func (userHandler UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Req
 	SendJSON(w, http.StatusOK, user)
 }
 
+// POST /api/user/follow?user_id=ID
+// Follows a public user, sends a follow request to a private user, or
+// unfollows / cancels the request when called again.
 func (userHandler UserHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("in")
-	following_target_id := r.URL.Query().Get("user_id")
-	user_target, err := strconv.Atoi(following_target_id)
-	if err != nil {
+	user_target, err := strconv.ParseInt(r.URL.Query().Get("user_id"), 10, 64)
+	if err != nil || user_target < 1 {
 		SendError(w, http.StatusBadRequest, "wrong data send")
 		return
 	}
 	user_id := r.Context().Value("user_id").(int64)
-	followed, err := userHandler.UserRepo.FollowUser(user_id, int64(user_target))
+	status, err := userHandler.UserRepo.FollowUser(user_id, user_target)
+	if errors.Is(err, repository.ErrFollowSelf) {
+		SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		SendError(w, http.StatusNotFound, "user not found")
+		return
+	}
 	if err != nil {
+		log.Printf("follow user %d: %v", user_target, err)
 		SendError(w, http.StatusInternalServerError, "internal server")
 		return
 	}
-	if followed {
-		userHandler.notify(int64(user_target), user_id, models.NotifNewFollower, 0, 0, "started following you")
+	switch status {
+	case "following":
+		userHandler.notify(user_target, user_id, models.NotifNewFollower, 0, 0, "started following you")
+	case "requested":
+		userHandler.notify(user_target, user_id, models.NotifFollowRequest, 0, 0, "wants to follow you")
 	}
-	res := models.Res{Message: "user followed successfully"}
-	SendJSON(w, http.StatusOK, res)
+	SendJSON(w, http.StatusOK, models.Res{Message: "follow status updated", Data: map[string]string{"follow_status": status}})
+}
+
+// POST /api/follow-requests/{user_id}  body: {"accept": true|false}
+// The logged-in (private) user answers the follow request sent by user_id.
+func (userHandler UserHandler) RespondFollowRequest(w http.ResponseWriter, r *http.Request) {
+	requesterID, err := strconv.ParseInt(r.PathValue("user_id"), 10, 64)
+	if err != nil || requesterID < 1 {
+		SendError(w, http.StatusBadRequest, "wrong user id")
+		return
+	}
+	var req models.DecisionFollowRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		SendError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	user_id := r.Context().Value("user_id").(int64)
+	err = userHandler.UserRepo.RespondFollowRequest(user_id, requesterID, req.Accept)
+	if errors.Is(err, repository.ErrNoFollowRequest) {
+		SendError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	if err != nil {
+		log.Printf("respond follow request: %v", err)
+		SendError(w, http.StatusInternalServerError, "internal server")
+		return
+	}
+	if req.Accept {
+		userHandler.notify(requesterID, user_id, models.NotifFollowAccepted, 0, 0, "accepted your follow request")
+		SendJSON(w, http.StatusOK, models.Res{Message: "follow request accepted"})
+		return
+	}
+	SendJSON(w, http.StatusOK, models.Res{Message: "follow request declined"})
 }
 
 func (userHandler UserHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
@@ -355,4 +412,36 @@ func (userHandler UserHandler) UpdatePrivacy(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	SendJSON(w, http.StatusOK, models.Res{Message: "privacy updated", Data: map[string]bool{"is_private": req.Private}})
+}
+
+// generateUsername builds a free nickname like "john_doe" or "john_doe42".
+func (repo *UserHandler) generateUsername(firstName, lastName string) (string, error) {
+	clean := func(value string) string {
+		var b strings.Builder
+		for _, r := range strings.ToLower(value) {
+			if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+				b.WriteRune(r)
+			}
+		}
+		return b.String()
+	}
+	base := strings.Trim(clean(firstName)+"_"+clean(lastName), "_")
+	if len(base) < 3 {
+		base = "user_" + base
+	}
+	if len(base) > 24 {
+		base = base[:24]
+	}
+	candidate := base
+	for i := 0; i < 50; i++ {
+		taken, err := repo.UserRepo.UsernameTaken(candidate)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return candidate, nil
+		}
+		candidate = fmt.Sprintf("%s%d", base, rand.Intn(10000))
+	}
+	return "", errors.New("no free username found")
 }

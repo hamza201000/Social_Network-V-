@@ -51,3 +51,29 @@ func TestPasswordIsHashedAndCheckedOnLogin(t *testing.T) {
 		t.Fatalf("unknown user: want ErrInvalidCredentials, got %v", err)
 	}
 }
+
+func TestRegisterWithoutNicknameGeneratesOne(t *testing.T) {
+	db := openMigratedDB(t)
+	defer db.Close()
+	repo := &UserRepository{db: db}
+	for i, email := range []string{"m1@x.com", "m2@x.com"} {
+		if err := repo.RegisterUser(models.RegisterRequest{FirstName: "Mina", LastName: "Stone", Email: email,
+			Password: "secret123", DateOfBirth: "2000-01-01"}); err != nil {
+			t.Fatalf("register %d: %v", i, err)
+		}
+	}
+	rows, err := db.Query(`SELECT username FROM users ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var names []string
+	for rows.Next() {
+		var n string
+		rows.Scan(&n)
+		names = append(names, n)
+	}
+	if len(names) != 2 || names[0] != "mina_stone" || names[1] != "mina_stone2" {
+		t.Fatalf("generated usernames = %v", names)
+	}
+}

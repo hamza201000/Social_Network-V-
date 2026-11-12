@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -44,7 +46,13 @@ func (repo *UserRepository) RegisterUser(user models.RegisterRequest) error {
 	if emailTaken {
 		return ErrEmailTaken
 	}
-	if usernameTaken {
+	if user.Username == "" {
+		// no nickname given: build a unique one from the name, e.g. mina_stone, mina_stone2
+		user.Username, err = uniqueUsername(transaction, user.FirstName, user.LastName)
+		if err != nil {
+			return err
+		}
+	} else if usernameTaken {
 		return ErrUsernameTaken
 	}
 
@@ -158,6 +166,7 @@ func (repo *UserRepository) DeleteSession(sessionID string) error {
 func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (models.User, error) {
 
 	var user models.User
+	var requested bool
 	query := `
 		SELECT
 			u.id,
@@ -166,11 +175,18 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 			u.username,
 			u.email,
 			u.avatar_url,
+			COALESCE(u.date_of_birth, ''),
+			u.about_me,
+			COALESCE(u.created_at, ''),
 			u.private,
 			EXISTS (
 				SELECT 1 FROM followers f
 				WHERE f.follower_id = $1 AND f.following_target_id = u.id
 			) AS followed_by_me,
+			EXISTS (
+				SELECT 1 FROM follow_requests fr
+				WHERE fr.requester_id = $1 AND fr.target_id = u.id
+			) AS requested_by_me,
 			(SELECT COUNT(*) FROM followers f WHERE f.following_target_id = u.id) AS followers_count,
 			(SELECT COUNT(*) FROM followers f WHERE f.follower_id = u.id) AS following_count
 		FROM users u
@@ -188,8 +204,12 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 		&user.Username,
 		&user.Email,
 		&user.AvatarUrl,
+		&user.DateOfBirth,
+		&user.AboutMe,
+		&user.CreatedAt,
 		&user.IsPrivate,
 		&user.FollowedByMe,
+		&requested,
 		&user.Followers_count,
 		&user.Following_count,
 	)
@@ -199,6 +219,19 @@ func (repo *UserRepository) GetUserByUsername(user_id int64, username string) (m
 		return user, err
 	}
 	user.CanView = !user.IsPrivate || user.FollowedByMe || user.Id == user_id
+	if !user.CanView {
+		// a private profile only shows its information to followers
+		user.Email = ""
+		user.DateOfBirth = ""
+		user.AboutMe = ""
+		user.CreatedAt = ""
+	}
+	user.FollowStatus = "none"
+	if user.FollowedByMe {
+		user.FollowStatus = "following"
+	} else if requested {
+		user.FollowStatus = "requested"
+	}
 
 	return user, nil
 }
@@ -250,35 +283,81 @@ func (repo *UserRepository) GetMyUserData(userID int64) (models.User, error) {
 	return user, nil
 }
 
-// FollowUser toggles a follow. It returns true when the user is now followed,
-// false when the call removed an existing follow.
-func (repo *UserRepository) FollowUser(followerID int64, followingTargetID int64) (bool, error) {
-	query := `
-		DELETE FROM followers
-		WHERE follower_id = $1 AND following_target_id = $2;
-	`
+var (
+	ErrFollowSelf      = errors.New("you cannot follow yourself")
+	ErrNoFollowRequest = errors.New("no pending follow request from this user")
+)
 
-	result, err := repo.db.Exec(query, followerID, followingTargetID)
+// FollowUser is the follow button: it unfollows when already following,
+// cancels a pending request, sends a request to a private profile, or follows
+// a public profile directly. It returns the new status: "following", "requested" or "none".
+func (repo *UserRepository) FollowUser(followerID int64, targetID int64) (string, error) {
+	if followerID == targetID {
+		return "", ErrFollowSelf
+	}
+	result, err := repo.db.Exec(`DELETE FROM followers WHERE follower_id = ?1 AND following_target_id = ?2`,
+		followerID, targetID)
 	if err != nil {
-		return false, err
+		return "", err
+	}
+	if affected, _ := result.RowsAffected(); affected > 0 {
+		return "none", nil // was following -> unfollowed
 	}
 
-	affected, err := result.RowsAffected()
+	result, err = repo.db.Exec(`DELETE FROM follow_requests WHERE requester_id = ?1 AND target_id = ?2`,
+		followerID, targetID)
 	if err != nil {
-		return false, err
+		return "", err
 	}
-	if affected > 0 {
-		return false, nil // was following -> unfollowed
+	if affected, _ := result.RowsAffected(); affected > 0 {
+		// request cancelled: drop the notification the target received for it
+		_, err = repo.db.Exec(`DELETE FROM notifications WHERE user_id = ?1 AND actor_id = ?2 AND type = 'follow_request'`,
+			targetID, followerID)
+		return "none", err
 	}
 
-	_, err = repo.db.Exec(`
-		INSERT INTO followers (follower_id, following_target_id)
-		VALUES ($1, $2)
-	`, followerID, followingTargetID)
-	if err != nil {
-		return false, err
+	var private bool
+	if err := repo.db.QueryRow(`SELECT private FROM users WHERE id = ?1`, targetID).Scan(&private); err != nil {
+		return "", err
 	}
-	return true, nil
+	if private {
+		_, err = repo.db.Exec(`INSERT INTO follow_requests (requester_id, target_id) VALUES (?1, ?2)`,
+			followerID, targetID)
+		return "requested", err
+	}
+	_, err = repo.db.Exec(`INSERT INTO followers (follower_id, following_target_id) VALUES (?1, ?2)`,
+		followerID, targetID)
+	return "following", err
+}
+
+// RespondFollowRequest accepts or declines the request requesterID sent to targetID.
+func (repo *UserRepository) RespondFollowRequest(targetID, requesterID int64, accept bool) error {
+	transaction, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
+
+	result, err := transaction.Exec(`DELETE FROM follow_requests WHERE requester_id = ?1 AND target_id = ?2`,
+		requesterID, targetID)
+	if err != nil {
+		return err
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return ErrNoFollowRequest
+	}
+	if accept {
+		if _, err := transaction.Exec(`INSERT OR IGNORE INTO followers (follower_id, following_target_id) VALUES (?1, ?2)`,
+			requesterID, targetID); err != nil {
+			return err
+		}
+	}
+	// the request is answered: its notification has no purpose anymore
+	if _, err := transaction.Exec(`DELETE FROM notifications WHERE user_id = ?1 AND actor_id = ?2 AND type = 'follow_request'`,
+		targetID, requesterID); err != nil {
+		return err
+	}
+	return transaction.Commit()
 }
 
 func (repo *UserRepository) Followers(follower_id int64) ([]models.ProfileConnection, error) {
@@ -403,6 +482,65 @@ func (repo *UserRepository) CanViewProfile(viewerID, targetID int64) (bool, erro
 
 // SetPrivacy makes the user's profile private (true) or public (false).
 func (repo *UserRepository) SetPrivacy(userID int64, private bool) error {
-	_, err := repo.db.Exec(`UPDATE users SET private = $1 WHERE id = $2`, private, userID)
-	return err
+	transaction, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
+	if _, err := transaction.Exec(`UPDATE users SET private = ?1 WHERE id = ?2`, private, userID); err != nil {
+		return err
+	}
+	if !private {
+		// a public profile needs no approval: pending requests become follows
+		if _, err := transaction.Exec(`
+			INSERT OR IGNORE INTO followers (follower_id, following_target_id)
+			SELECT requester_id, target_id FROM follow_requests WHERE target_id = ?1`, userID); err != nil {
+			return err
+		}
+		if _, err := transaction.Exec(`DELETE FROM follow_requests WHERE target_id = ?1`, userID); err != nil {
+			return err
+		}
+		if _, err := transaction.Exec(`DELETE FROM notifications WHERE user_id = ?1 AND type = 'follow_request'`, userID); err != nil {
+			return err
+		}
+	}
+	return transaction.Commit()
+}
+
+// UsernameTaken reports whether a username (nickname) is already used.
+func (repo *UserRepository) UsernameTaken(username string) (bool, error) {
+	var taken bool
+	err := repo.db.QueryRow(`SELECT EXISTS (SELECT 1 FROM users WHERE lower(username) = lower(?1))`, username).Scan(&taken)
+	return taken, err
+}
+
+// uniqueUsername builds a free username from the first and last name, keeping
+// only letters, digits and underscores, and adds a number if it is taken.
+func uniqueUsername(tx *sql.Tx, firstName, lastName string) (string, error) {
+	var b strings.Builder
+	for _, r := range strings.ToLower(firstName + "_" + lastName) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' {
+			b.WriteRune(r)
+		}
+	}
+	base := strings.Trim(b.String(), "_")
+	if len(base) < 3 {
+		base = "user"
+	}
+	if len(base) > 24 {
+		base = base[:24]
+	}
+	candidate := base
+	for i := 2; ; i++ {
+		var taken bool
+		err := tx.QueryRow(`SELECT EXISTS (SELECT 1 FROM users WHERE lower(username) = $1 OR lower(email) = $1)`,
+			candidate).Scan(&taken)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return candidate, nil
+		}
+		candidate = base + strconv.Itoa(i)
+	}
 }

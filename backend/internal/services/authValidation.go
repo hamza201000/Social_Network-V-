@@ -9,6 +9,8 @@ import (
 	"unicode/utf8"
 )
 
+var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
 func RegisterRequest(userData models.RegisterRequest) error {
 	if strings.TrimSpace(userData.FirstName) == "" {
 		return errors.New("first name is required")
@@ -18,23 +20,17 @@ func RegisterRequest(userData models.RegisterRequest) error {
 		return errors.New("last name is required")
 	}
 
-	username := strings.TrimSpace(userData.Username)
-
-	if username == "" {
-		return errors.New("username is required")
-	}
-
-	if len(username) < 3 {
-		return errors.New("username must be at least 3 characters")
-	}
-
-	if len(username) > 30 {
-		return errors.New("username must not exceed 30 characters")
-	}
-
-	usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-	if !usernameRegex.MatchString(username) {
-		return errors.New("username can only contain letters, numbers and underscores")
+	// the nickname is optional: when it is empty one is generated from the name
+	if username := strings.TrimSpace(userData.Username); username != "" {
+		if len(username) < 3 {
+			return errors.New("nickname must be at least 3 characters")
+		}
+		if len(username) > 30 {
+			return errors.New("nickname must not exceed 30 characters")
+		}
+		if !usernameRegex.MatchString(username) {
+			return errors.New("nickname can only contain letters, numbers and underscores")
+		}
 	}
 
 	email := strings.TrimSpace(userData.Email)
@@ -63,7 +59,10 @@ func RegisterRequest(userData models.RegisterRequest) error {
 		return errors.New("password must not exceed 72 characters")
 	}
 
-	if userData.DateOfBirth != "" {
+	if userData.DateOfBirth == "" {
+		return errors.New("date of birth is required")
+	}
+	{
 		dateOfBirth, err := time.Parse("2006-01-02", userData.DateOfBirth)
 		if err != nil {
 			return errors.New("date of birth must be a valid date")

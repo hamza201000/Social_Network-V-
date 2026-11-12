@@ -37,7 +37,9 @@ function timeAgo(value: string) {
 
 // where clicking a notification takes the user
 function notificationLink(n: AppNotification) {
-  if (n.type === "new_follower") return `/profile/${encodeURIComponent(n.actor_username)}`;
+  if (n.type === "new_follower" || n.type === "follow_request" || n.type === "follow_accepted") {
+    return `/profile/${encodeURIComponent(n.actor_username)}`;
+  }
   if (n.group_id) return `/group/${n.group_id}`;
   return null;
 }
@@ -51,6 +53,8 @@ const ICONS: Record<AppNotification["type"], string> = {
   invite_declined: "✖️",
   join_accepted: "✅",
   join_refused: "⛔",
+  follow_request: "➕",
+  follow_accepted: "👥",
 };
 
 export default function NotificationBell() {
@@ -184,6 +188,25 @@ export default function NotificationBell() {
     }
   }
 
+  // accept or decline a follow request directly from the notification
+  async function answerFollowRequest(n: AppNotification, accept: boolean) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/follow-requests/${n.actor_id}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accept }),
+      });
+      // 404: the request was already answered or cancelled
+      if (!response.ok && response.status !== 404) throw new Error();
+      if (!n.is_read) setUnread((count) => Math.max(0, count - 1));
+      setNotifications((current) => current.filter((item) => item.id !== n.id));
+      setError("");
+    } catch {
+      setError("Could not answer the follow request.");
+    }
+  }
+
   function handleClick(n: AppNotification) {
     void markRead(n);
     const link = notificationLink(n);
@@ -250,6 +273,16 @@ export default function NotificationBell() {
                     </span>
                     {!n.is_read && <span className="notif-dot" aria-label="unread" />}
                   </button>
+                  {n.type === "follow_request" && (
+                    <div className="notif-actions">
+                      <button type="button" className="notif-accept" onClick={() => void answerFollowRequest(n, true)}>
+                        Accept
+                      </button>
+                      <button type="button" className="notif-decline" onClick={() => void answerFollowRequest(n, false)}>
+                        Decline
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

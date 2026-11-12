@@ -111,7 +111,7 @@ export default  function Profile({ username, myProfile }: { username: string, my
                             <p className="profile-privacy-badge">{profile.is_private ? "Private profile" : "Public profile"}</p>
                         )}
                     </div>
-                    {!myProfile ?  <Follow isFollowed={profile?.followed_by_me}  user_id={profile?.user_id} />:<></> }
+                    {!myProfile ? <Follow key={`${profile?.user_id}-${profile?.follow_status}`} status={profile?.follow_status} user_id={profile?.user_id} onChange={() => void fetchProfile()} /> : <></>}
                     {myProfile && profile && (
                         <button
                             type="button"
@@ -152,8 +152,12 @@ export default  function Profile({ username, myProfile }: { username: string, my
                         <dd>{profile?.last_name || "Not provided"}</dd>
                     </div>
                     <div className="profile-detail">
+                        <dt>Email</dt>
+                        <dd>{profile?.email || "Not provided"}</dd>
+                    </div>
+                    <div className="profile-detail">
                         <dt>Date of birth</dt>
-                        <dd>{profile?.date_of_birth || "Not provided"}</dd>
+                        <dd>{profile?.date_of_birth ? profile.date_of_birth.slice(0, 10) : "Not provided"}</dd>
                     </div>
                     <div className="profile-detail">
                         <dt>Nickname</dt>

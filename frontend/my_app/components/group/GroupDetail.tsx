@@ -140,18 +140,18 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
     void loadMembers();
   }, [loadGroup, loadMembers]);
 
-  // every member sees pending join requests and can answer them
+  // only the creator of the group sees pending join requests and can answer them
   useEffect(() => {
-    if (isMember) void loadRequests();
-  }, [isMember, loadRequests]);
+    if (isAdmin) void loadRequests();
+  }, [isAdmin, loadRequests]);
 
   // read by the websocket listener without re-subscribing on every change
-  const isMemberRef = useRef(isMember);
+  const isAdminRef = useRef(isAdmin);
   const dialogRef = useRef(dialog);
   useEffect(() => {
-    isMemberRef.current = isMember;
+    isAdminRef.current = isAdmin;
     dialogRef.current = dialog;
-  }, [isMember, dialog]);
+  }, [isAdmin, dialog]);
 
   // live updates: someone joined, requested, was invited, was refused...
   useEffect(
@@ -161,7 +161,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
         if (!reconnected && !(isGroupUpdate(data) && String(data.group_id) === String(groupId))) return;
         void loadGroup();
         void loadMembers();
-        if (isMemberRef.current) void loadRequests();
+        if (isAdminRef.current) void loadRequests();
         if (dialogRef.current === "invite") void loadInvitables();
       }),
     [groupId, loadGroup, loadMembers, loadRequests, loadInvitables],
@@ -289,7 +289,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
                 <span aria-hidden="true">＋</span> Invite people
               </button>
             )}
-            {isMember && (
+            {isAdmin && (
               <button
                 className="group-secondary-action"
                 type="button"
@@ -447,7 +447,7 @@ export default function GroupDetail({ groupId }: GroupDetailProps) {
                 ? `${group.member_count.toLocaleString()} member${group.member_count === 1 ? "" : "s"}.`
                 : dialog === "invite"
                   ? "Invite your followers and the people you follow."
-                  : "Any member of the group can accept or refuse these requests."}
+                  : "As the creator of the group, you can accept or refuse these requests."}
             </p>
 
             {dialogError && (

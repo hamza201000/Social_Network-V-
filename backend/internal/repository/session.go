@@ -8,10 +8,14 @@ import (
 	"uuid"
 )
 
+// SessionDuration is how long a login lasts. Users stay logged in until they
+// log out; this only cleans up sessions that were abandoned long ago.
+const SessionDuration = 30 * 24 * time.Hour
+
 func (r *UserRepository) CreateSession(userID int64) (uuid.UUID, error) {
 	sessionID := uuid.New()
 
-	expiresAt := time.Now().Add(24 * time.Minute)
+	expiresAt := time.Now().UTC().Add(SessionDuration)
 
 	_, err := r.db.Exec(`
 		INSERT INTO sessions (token, user_id, expires_at)

@@ -212,3 +212,31 @@
   padding-block: 10px;
   color: #b42318;
 }
+
+.notif-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 14px 10px 62px;
+}
+
+.notif-accept,
+.notif-decline {
+  padding: 5px 12px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notif-accept {
+  border: 0;
+  background: #23664f;
+  color: #fff;
+}
+
+.notif-decline {
+  border: 1px solid #cfdcd2;
+  background: #fff;
+  color: #4b6352;
+}

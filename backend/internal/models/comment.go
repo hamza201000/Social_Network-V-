@@ -6,6 +6,7 @@ type CommentData struct {
 	Id         int64     `json:"id"`
 	User_id    int64     `json:"user_id"`
 	Username   string    `json:"username"`
+	AvatarUrl  string    `json:"avatar_url"`
 	Post_id    int64     `json:"post_id"`
 	Content    string    `json:"content"`
 	Image      string    `json:"image"`

@@ -16,6 +16,12 @@ type User struct {
 	CreatedAt       string `json:"created_at"`
 	IsPrivate       bool   `json:"is_private"`
 	CanView         bool   `json:"can_view"` // false when the profile is private and the viewer is not a follower
+	// "following", "requested" (pending request to a private profile) or "none"
+	FollowStatus string `json:"follow_status"`
+}
+
+type DecisionFollowRequest struct {
+	Accept bool `json:"accept"`
 }
 
 type PrivacyRequest struct {

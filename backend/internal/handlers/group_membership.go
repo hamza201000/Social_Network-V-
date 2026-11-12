@@ -190,15 +190,9 @@ func (userHandler UserHandler) JoinUsrGroup(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// every member can answer join requests, so every member is told
-	memberIDs, err := userHandler.UserRepo.GroupMemberIDs(group.Id)
-	if err != nil {
-		log.Printf("join request: get members of group %d: %v", group.Id, err)
-	}
-	message := fmt.Sprintf("wants to join %q", group.Title)
-	for _, memberID := range memberIDs {
-		userHandler.notify(memberID, userID, models.NotifJoinRequest, group.Id, 0, message)
-	}
+	// only the creator of the group can answer join requests, so only they are told
+	userHandler.notify(group.AdminId, userID, models.NotifJoinRequest, group.Id, 0,
+		fmt.Sprintf("wants to join %q", group.Title))
 	userHandler.pushGroupUpdate(group.Id, actionJoinRequested, userID, userID)
 	SendJSON(w, http.StatusOK, models.Res{Message: "request to join group sent successfully", Data: map[string]string{"status": "pending"}})
 }
@@ -239,14 +233,14 @@ func (userHandler UserHandler) RespondInvitation(w http.ResponseWriter, r *http.
 	SendJSON(w, http.StatusOK, models.Res{Message: "invitation declined", Data: map[string]string{"status": "none"}})
 }
 
-// GET /api/groups/{group_id}/requests  (group members only)
+// GET /api/groups/{group_id}/requests  (group creator only)
 func (userHandler UserHandler) GetJoinRequests(w http.ResponseWriter, r *http.Request) {
 	group, _, ok := userHandler.groupFromPath(w, r)
 	if !ok {
 		return
 	}
-	if !isMemberStatus(group.MyStatus) {
-		SendError(w, http.StatusForbidden, "only group members can see join requests")
+	if group.MyStatus != "admin" {
+		SendError(w, http.StatusForbidden, "only the creator of the group can see join requests")
 		return
 	}
 	requests, err := userHandler.UserRepo.JoinRequests(group.Id)
@@ -259,14 +253,14 @@ func (userHandler UserHandler) GetJoinRequests(w http.ResponseWriter, r *http.Re
 }
 
 // POST /api/groups/{group_id}/requests/{user_id}  body: {"accept": true|false}
-// Any member of the group can accept or refuse a join request.
+// Only the creator of the group can accept or refuse a join request.
 func (userHandler UserHandler) RespondJoinRequest(w http.ResponseWriter, r *http.Request) {
 	group, responderID, ok := userHandler.groupFromPath(w, r)
 	if !ok {
 		return
 	}
-	if !isMemberStatus(group.MyStatus) {
-		SendError(w, http.StatusForbidden, "only group members can answer join requests")
+	if group.MyStatus != "admin" {
+		SendError(w, http.StatusForbidden, "only the creator of the group can answer join requests")
 		return
 	}
 	requesterID, err := strconv.ParseInt(r.PathValue("user_id"), 10, 64)

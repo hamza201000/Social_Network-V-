@@ -6,6 +6,9 @@ const (
 	NotifGroupInvite = "group_invite"
 	NotifJoinRequest = "join_request"
 	NotifGroupEvent  = "group_event"
+	// sent to a private user when someone asks to follow them
+	NotifFollowRequest  = "follow_request"
+	NotifFollowAccepted = "follow_accepted"
 )
 
 type Notification struct {
